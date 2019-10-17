@@ -1,0 +1,13 @@
+{
+    "domain": "hekr",
+    "name": "Hekr",
+    "documentation": "https://github.com/alryaz/home-assistant-custom-components/tree/master/hekr",
+    "dependencies": [],
+    "codeowners": [
+        "@alryaz"
+    ],
+    "config_flow": false,
+    "requirements": [
+        "websockets"
+    ]
+}
