@@ -1,213 +1,264 @@
 """Support for Hekr sensors."""
-from datetime import timedelta
 import logging
+from enum import EnumMeta
 
-from time import sleep
+import voluptuous as vol
+from typing import Optional, List, Union, Set
+import asyncio
 
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.entity_component import EntityComponent
-from homeassistant.const import CONF_DEVICES, CONF_DEVICE_ID, STATE_UNKNOWN, ATTR_UNIT_OF_MEASUREMENT, ATTR_ICON, ATTR_NAME
+from homeassistant.const import (
+    STATE_UNKNOWN, ATTR_UNIT_OF_MEASUREMENT, ATTR_ICON, ATTR_NAME,
+    CONF_SCAN_INTERVAL, STATE_OK, CONF_SENSORS
+)
 from homeassistant.helpers.typing import ConfigType, HomeAssistantType
-from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.exceptions import PlatformNotReady
-from homeassistant.util import Throttle
+from homeassistant.helpers.event import async_track_time_interval
 
-from .hekrapi.device import Device as HekrDevice
-from .hekrapi.protocol import load_protocol_definition
-from .hekrapi.helpers import string_humanize
+from hekrapi.device import Device, DeviceResponseState
+from hekrapi.exceptions import HekrAPIException
 
 from .shared import (DOMAIN,
-    CONF_DEVICE_ID, CONF_PROTOCOL, CONF_CONTROL_KEY, CONF_APPLICATION_ID, CONF_HOST, CONF_PORT, CONF_NAME,
-    SUPPORTED_SENSOR_PROTOCOLS, DEVICE_CONFIG_FIELDS, MONITORED_CONDITIONS_ALL, DEFAULT_SENSOR_ICON, DEFAULT_QUERY_COMMAND,
-    ATTR_MONITORED_ATTRIBUTES, ATTR_SENSOR_GROUPS, ATTR_STATE_ATTRIBUTE, ATTR_UPDATE_COMMANDS, ATTR_FUNC_FILTER_ATTRIBUTES)
+                     CONF_DEVICE_ID, CONF_PROTOCOL, CONF_CONTROL_KEY, CONF_APPLICATION_ID, CONF_HOST, CONF_PORT,
+                     CONF_NAME, DEFAULT_SENSOR_ICON, CONF_DEFAULT_SENSORS,
+                     ATTR_MONITORED_ATTRIBUTES, ATTR_STATE_ATTRIBUTE, MIN_TIME_BETWEEN_UPDATES, CONF_UPDATE_COMMANDS,
+                     SENSOR_PLATFORM_SCHEMA, CONF_FUNC_FILTER_ATTRIBUTES,
+                     CONF_PROTOCOL_DEFINITION)
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(DEVICE_CONFIG_FIELDS)
-
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=15)
+PLATFORM_SCHEMA = SENSOR_PLATFORM_SCHEMA
 
 async def async_setup_platform(hass: HomeAssistantType, config: ConfigType, async_add_entities, discovery_info=None):
     """Set up platform."""
 
-    protocol_name = config.get(CONF_PROTOCOL)
+    protocol = config.get(CONF_PROTOCOL)
     device_id = config.get(CONF_DEVICE_ID)
+    scan_interval = config.get(CONF_SCAN_INTERVAL)
+    host = config.get(CONF_HOST)
+    port = config.get(CONF_PORT)
+    sensors = config.get(CONF_SENSORS, protocol.get(CONF_DEFAULT_SENSORS, list(protocol[CONF_SENSORS].keys())))
+    sensors = sensors if isinstance(sensors, list) else [sensors]
 
-    if protocol_name in SUPPORTED_SENSOR_PROTOCOLS:
-        try:
-            hekr_device = HekrDevice(
-                device_id = device_id,
-                control_key = config.get(CONF_CONTROL_KEY),
-                application_id = config.get(CONF_APPLICATION_ID),
-                address = config.get(CONF_HOST),
-                port = config.get(CONF_PORT),
-                device_protocol = load_protocol_definition(protocol_name)
-            )
-
-            hekr_device.authenticate()
-
-            name = config.get(CONF_NAME)
-
-            data = HekrData(
-                hekr_device = hekr_device,
-                update_commands = SUPPORTED_SENSOR_PROTOCOLS[protocol_name].get(ATTR_UPDATE_COMMANDS),
-                attribute_filter = SUPPORTED_SENSOR_PROTOCOLS[protocol_name].get(ATTR_FUNC_FILTER_ATTRIBUTES)
-            )
-
-            await data.async_update()
-        except Exception as e:
-            _LOGGER.error('Failed to initialize platform [%s]: %s', DOMAIN, str(e))
-            raise PlatformNotReady
-
-        if not data.device_data:
-            raise PlatformNotReady
-
-        monitored_conditions = SUPPORTED_SENSOR_PROTOCOLS[protocol_name].get(ATTR_SENSOR_GROUPS, None)
-        if monitored_conditions:
-            _LOGGER.debug('Using additional monitored conditions')
-            sensors = [
-                HekrSensor(data = data, name = name, monitor_group_name = monitor_group_name)
-                for monitor_group_name in monitored_conditions.keys()
-            ]
-        else:
-            _LOGGER.debug('Using wildcard monitored conditions')
-            sensors = [HekrSensor(data = data, name = name, monitor_group_name = MONITORED_CONDITIONS_ALL)]
-
-        async_add_entities(sensors)
-        return True
-
-    _LOGGER.error('Protocol "%s" not supported for entity ID "%s"', protocol_name, device_id)
-    return False
-
-class HekrData:
-    def __init__(self, hekr_device: HekrDevice, update_commands: list = [DEFAULT_QUERY_COMMAND], attribute_filter = None):
-        self.hekr_device = hekr_device
-        self.update_commands = update_commands
-        self.device_data = {}
-        self.available = True
-        self.attribute_filter = attribute_filter
-
-    async def async_update_device_state(self):
-        new_data = {}
-        for command in self.update_commands:
-            result = self.hekr_device.command(command)
-            _LOGGER.debug('Update for %s complete: %s', command, str(result))
-            new_data.update(result)
-        
-        if callable(self.attribute_filter):
-            new_data = self.attribute_filter(new_data)
-        
-        self.device_data = new_data
-        return True
-    
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
-    async def async_update(self, reload_socket = False):
-        try:
-            self.hekr_device.heartbeat()
-            await self.async_update_device_state()
-        except Exception as e:
-            _LOGGER.error('Failed to update ID "%s": %s', self.hekr_device.device_id, str(e))
-            _LOGGER.error('Attempting to fix this little mishap')
-            try:
-                self.hekr_device.authenticate()
-                await self.async_update_device_state()
-            except Exception as e:
-                _LOGGER.error('Reauthentication failed, attempting to reload socket')
-                try:
-                    self.hekr_device.local_socket = None
-                    self.hekr_device.authenticate()
-                    await self.async_update_device_state()
-                except Exception as e:
-                    _LOGGER.error('Unable to update device, disabling for good')
-                    self.available = False
-                    return False
-
-            _LOGGER.info('Restored connection to device')
-            return True
-
-class HekrSensor(Entity):
-    def __init__(self, data:HekrData, name:str = None, monitor_group_name:str=MONITORED_CONDITIONS_ALL):
-        self.data = data
-        self.monitor_group_name = monitor_group_name
-
-        self._name = name
-        self._device_state_attributes = {}
-
-    def is_default_sensor(self):
-        return self.monitor_group_name == MONITORED_CONDITIONS_ALL or not self.monitor_group_name
-    
-    async def async_update(self):
-        await self.data.async_update()
-        _LOGGER.debug('device state attributes for "%s": %s', self.name, self.device_state_attributes)
-
-    @property
-    def available(self):
-        return self.data.available
-
-    @property
-    def monitor_group(self):
-        return self.support_definition.get(ATTR_SENSOR_GROUPS, {}).get(self.monitor_group_name, {})
-
-    @property
-    def support_definition(self):
-        return SUPPORTED_SENSOR_PROTOCOLS[self.data.hekr_device.device_protocol.name]
-
-    @property
-    def unique_id(self):
-        """Get unique ID."""
-        return "{}-{}".format(self.data.hekr_device.device_id, self.monitor_group_name)
-
-    @property
-    def icon(self):
-        return (DEFAULT_SENSOR_ICON if self.is_default_sensor()
-            else self.monitor_group.get(ATTR_ICON, DEFAULT_SENSOR_ICON))
-
-    @property
-    def name(self):
-        """Return the display name of this entity."""
-        base_name = self._name if self._name else self.data.hekr_device.name
-        if self.is_default_sensor():
-            return base_name
-        else:
-            return "{} - {}".format(base_name, self.monitor_group.get(ATTR_NAME, string_humanize(self.monitor_group_name)))
-    
-    @property
-    def state(self):
-        return self.data.device_data.get(
-            self.support_definition.get(ATTR_STATE_ATTRIBUTE, "")
-            if self.monitor_group_name == MONITORED_CONDITIONS_ALL
-            else self.monitor_group.get(ATTR_STATE_ATTRIBUTE, ""),
-            STATE_UNKNOWN
+    try:
+        hekr_device = Device(
+            device_id=device_id,
+            control_key=config.get(CONF_CONTROL_KEY),
+            application_id=config.get(CONF_APPLICATION_ID),
+            host=host,
+            port=port,
+            protocol=protocol[CONF_PROTOCOL_DEFINITION]
         )
 
-    @property
-    def unit_of_measurement(self):
-        return (self.support_definition.get(ATTR_UNIT_OF_MEASUREMENT, None)
-            if self.monitor_group_name == MONITORED_CONDITIONS_ALL
-            else self.monitor_group.get(ATTR_UNIT_OF_MEASUREMENT, None))
+        _LOGGER.debug('open local socket')
+        await hekr_device.open_socket_local()
+
+        _LOGGER.debug('init authenticate')
+        await hekr_device.authenticate()
+
+        default_name = 'Hekr Device {}:{}'.format(host, port)
+        name = config.get(CONF_NAME, default_name)
+
+        _LOGGER.debug('Using sensor groups for monitoring: %s', sensors)
+        entities = [
+            HekrSensor(
+                name=name + ' - ' + definition.get(ATTR_NAME, group.capitalize()),
+                sensor_type=group,
+                icon=definition.get(ATTR_ICON),
+                unit_of_measurement=definition.get(ATTR_UNIT_OF_MEASUREMENT)
+            )
+            for group, definition in protocol[CONF_SENSORS].items()
+            if group in sensors
+        ]
+
+        data = HekrData(
+            hass=hass,
+            entities=entities,
+            hekr_device=hekr_device,
+            protocol=protocol
+        )
+
+        _LOGGER.debug('async add entities')
+        async_add_entities(entities)
+
+        _LOGGER.debug('Updating platform for the first time')
+        await data.async_update()
+
+        _LOGGER.debug('Setting up platform to update every %d seconds', scan_interval.seconds)
+        async_track_time_interval(hass, data.async_update, scan_interval)
+
+    except Exception as e:
+        _LOGGER.exception('Failed to initialize platform [%s]: %s', DOMAIN, str(e))
+        raise PlatformNotReady
+
+
+class HekrSensor(Entity):
+    def __init__(self,
+                 name: str = None,
+                 sensor_type: str = None,
+                 icon: str = None,
+                 unit_of_measurement: str = None):
+        self.sensor_type = sensor_type
+        self._name = name
+        self._device_state_attributes = {}
+        self._available = False
+        self._icon = icon
+        self._state = STATE_UNKNOWN
+        self._unit_of_measurement = unit_of_measurement
+        self._attributes = None
 
     @property
-    def device_state_attributes(self):
-        self._device_state_attributes = {
-            attribute: value for attribute, value in self.data.device_data.items()
-            if self.is_default_sensor()
-                #and attribute != self.support_definition.get(ATTR_STATE_ATTRIBUTE, None)
-            or attribute in self.monitor_group.get(ATTR_MONITORED_ATTRIBUTES, [])
-        }
-        self._device_state_attributes.update({
-            ATTR_UNIT_OF_MEASUREMENT: self.unit_of_measurement,
-        })
-        return self._device_state_attributes
+    def should_poll(self) -> bool:
+        return False
 
     @property
-    def device_info(self):
-        """Return the device info."""
-        return {
-            "identifiers": {
-                (DOMAIN, self.data.hekr_device.device_id, self.monitor_group_name)
-            },
-            "name": self.name,
-            "manufacturer": "Hekr",
-            "model": self.data.hekr_device.device_protocol.display_name,
-            "sw_version": "unknown",
-        }
+    def available(self) -> bool:
+        return self._available
+
+    @property
+    def icon(self) -> str:
+        return self._icon
+
+    @property
+    def name(self) -> str:
+        """Return the display name of this entity."""
+        return self._name
+
+    @property
+    def state(self) -> Optional[str]:
+        return self._state
+
+    @property
+    def unit_of_measurement(self) -> Optional[str]:
+        return self._unit_of_measurement
+
+    @property
+    def device_state_attributes(self) -> Optional[dict]:
+        return self._attributes
+
+
+class HekrData:
+    def __init__(self,
+                 hass: HomeAssistantType,
+                 hekr_device: Device,
+                 entities: List[HekrSensor],
+                 protocol: dict):
+        self.hass = hass
+        self.hekr_device = hekr_device
+        self.protocol = protocol
+        self.device_data = {}
+        self.entities = entities
+
+    @property
+    def sensor_update_commands(self) -> Set[str]:
+        update_commands = []
+        for entity in self.entities:
+            update_commands.extend(self.protocol[CONF_SENSORS][entity.sensor_type].get(CONF_UPDATE_COMMANDS))
+        return set(update_commands)
+
+    async def async_propagate(self, disabled: bool = False, dont_update_hass: bool = False) -> None:
+        tasks = []
+        _LOGGER.debug('data to propagate: %s', self.device_data)
+        for entity in self.entities:
+            new_attributes = None
+            new_available = False
+            new_state = STATE_UNKNOWN
+            state_attr = None
+
+            if not disabled:
+                ''' Enable all sensor entities and update data '''
+                new_available = True
+
+                sensor_group = self.protocol[CONF_SENSORS].get(entity.sensor_type)
+                monitored_attributes = sensor_group.get(ATTR_MONITORED_ATTRIBUTES)
+                state_attr = sensor_group.get(ATTR_STATE_ATTRIBUTE, None)
+
+                if state_attr in self.device_data:
+                    new_state = self.device_data[state_attr]
+                else:
+                    new_state = STATE_OK
+
+                if isinstance(monitored_attributes, list):
+                    new_attributes = {
+                        key: value
+                        for key, value in self.device_data.items()
+                        if key in monitored_attributes
+                    }
+
+                elif monitored_attributes:
+                    new_attributes = self.device_data.copy()
+                    if state_attr and state_attr in new_attributes:
+                        del new_attributes[state_attr]
+
+            should_update = False
+            if new_available != entity.available:
+                entity._available = new_available
+                should_update = True
+
+            if new_attributes is not None and entity.device_state_attributes != new_attributes:
+                entity._attributes = new_attributes
+                should_update = True
+
+            if entity.state != new_state:
+                entity._state = new_state
+                should_update = True
+
+            _LOGGER.debug('device %s, sensor_type: %s, state_attr: %s', entity, entity.sensor_type, state_attr)
+            _LOGGER.debug('device %s, state: %s, attrs: %s, avail: %s',
+                          entity, new_state, new_attributes, new_available)
+
+            if not dont_update_hass and should_update:
+                tasks.append(entity.async_update_ha_state())
+
+        if tasks:
+            _LOGGER.debug('%d update tasks scheduled', len(tasks))
+            await asyncio.wait(tasks)
+
+    async def async_update(self, dont_update_hass: bool = False):
+        try:
+            _LOGGER.debug('Executing heartbeat during update')
+            (state, _, _) = await self.hekr_device.heartbeat()
+
+            if state != DeviceResponseState.SUCCESS:
+                _LOGGER.error('Error while updating data: heartbeat could not execute for device %s', self.hekr_device)
+                raise PlatformNotReady
+
+            _LOGGER.debug('Updating data')
+            new_data = {}
+
+            for command in self.sensor_update_commands:
+                _LOGGER.debug('Executing Hekr command "%s"', command)
+                while True:
+                    state, action, data = await self.hekr_device.command(command)
+
+                    # @TODO: this is a workaround, and should not be here. not even sure if it works
+                    if action == 'heartbeatResp':
+                        _LOGGER.warning('Heartbeat response caught after executing command')
+                    else:
+                        break
+
+                if state == DeviceResponseState.SUCCESS and isinstance(data, tuple):
+                    _LOGGER.debug('Update for command "%s" complete: action %s, data %s', command, action, data)
+                    new_data.update(data[1])
+                else:
+                    _LOGGER.error('Update for command "%s" failed: action %s, data %s', command, action, data)
+
+                await asyncio.sleep(2)
+
+            filter_func = self.protocol.get(CONF_FUNC_FILTER_ATTRIBUTES)
+            if callable(filter_func):
+                new_data = filter_func(new_data)
+
+            self.device_data.update(new_data)
+
+            _LOGGER.debug('Propagating data updates')
+            await self.async_propagate(disabled=False, dont_update_hass=dont_update_hass)
+
+        except HekrAPIException:
+            _LOGGER.exception('Hekr API failed to sync')
+            await self.async_propagate(disabled=True, dont_update_hass=dont_update_hass)
+
+        except Exception:
+            _LOGGER.exception('Exception occurred during device update')
+            raise PlatformNotReady

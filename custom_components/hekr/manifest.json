@@ -8,6 +8,6 @@
     ],
     "config_flow": false,
     "requirements": [
-        "websockets"
+        "hekrapi==0.0.9"
     ]
 }

@@ -1,0 +1,6 @@
+{
+    "name": "Hekr Component",
+    "content_in_root": false,
+    "domains": ["sensor"],
+    "homeassistant": "0.96.0"
+}
