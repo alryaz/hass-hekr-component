@@ -1,34 +1,30 @@
 """Support for Hekr sensors."""
-import logging
-from enum import EnumMeta
-
-import voluptuous as vol
-from typing import Optional, List, Union, Set
 import asyncio
+import logging
+from typing import Optional, List, Set
 
-import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.entity import Entity
+from hekrapi.device import Device, DeviceResponseState
+from hekrapi.exceptions import HekrAPIException
 from homeassistant.const import (
     STATE_UNKNOWN, ATTR_UNIT_OF_MEASUREMENT, ATTR_ICON, ATTR_NAME,
     CONF_SCAN_INTERVAL, STATE_OK, CONF_SENSORS
 )
-from homeassistant.helpers.typing import ConfigType, HomeAssistantType
 from homeassistant.exceptions import PlatformNotReady
+from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.event import async_track_time_interval
-
-from hekrapi.device import Device, DeviceResponseState
-from hekrapi.exceptions import HekrAPIException
+from homeassistant.helpers.typing import ConfigType, HomeAssistantType
 
 from .shared import (DOMAIN,
                      CONF_DEVICE_ID, CONF_PROTOCOL, CONF_CONTROL_KEY, CONF_APPLICATION_ID, CONF_HOST, CONF_PORT,
-                     CONF_NAME, DEFAULT_SENSOR_ICON, CONF_DEFAULT_SENSORS,
-                     ATTR_MONITORED_ATTRIBUTES, ATTR_STATE_ATTRIBUTE, MIN_TIME_BETWEEN_UPDATES, CONF_UPDATE_COMMANDS,
+                     CONF_NAME, CONF_DEFAULT_SENSORS,
+                     ATTR_MONITORED_ATTRIBUTES, ATTR_STATE_ATTRIBUTE, CONF_UPDATE_COMMANDS,
                      SENSOR_PLATFORM_SCHEMA, CONF_FUNC_FILTER_ATTRIBUTES,
                      CONF_PROTOCOL_DEFINITION)
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORM_SCHEMA = SENSOR_PLATFORM_SCHEMA
+
 
 async def async_setup_platform(hass: HomeAssistantType, config: ConfigType, async_add_entities, discovery_info=None):
     """Set up platform."""
@@ -215,7 +211,7 @@ class HekrData:
             _LOGGER.debug('%d update tasks scheduled', len(tasks))
             await asyncio.wait(tasks)
 
-    async def async_update(self, dont_update_hass: bool = False):
+    async def async_update(self, *_, dont_update_hass: bool = False) -> None:
         try:
             _LOGGER.debug('Executing heartbeat during update')
             (state, _, _) = await self.hekr_device.heartbeat()
