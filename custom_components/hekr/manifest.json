@@ -8,6 +8,6 @@
     ],
     "config_flow": false,
     "requirements": [
-        "hekrapi==0.0.9"
+        "hekrapi==0.0.10"
     ]
 }

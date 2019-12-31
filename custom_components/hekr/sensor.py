@@ -1,6 +1,7 @@
 """Support for Hekr sensors."""
 import asyncio
 import logging
+import threading
 from typing import Optional, List, Set
 
 from hekrapi.device import Device, DeviceResponseState
@@ -11,7 +12,7 @@ from homeassistant.const import (
 )
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_track_time_interval, async_call_later
 from homeassistant.helpers.typing import ConfigType, HomeAssistantType
 
 from .shared import (DOMAIN,
@@ -89,6 +90,40 @@ async def async_setup_platform(hass: HomeAssistantType, config: ConfigType, asyn
         raise PlatformNotReady
 
 
+class DeviceThreadedListener(threading.Thread):
+    """
+    This interfaces with the lirc daemon to read IR commands.
+    When using lirc in blocking mode, sometimes repeated commands get produced
+    in the next read of a command so we use a thread here to just wait
+    around until a non-empty response is obtained from lirc.
+    """
+
+    def __init__(self, data, hass):
+        """Construct a LIRC interface object."""
+        threading.Thread.__init__(self)
+        self.daemon = True
+        self.stopped = threading.Event()
+        self.hass = hass
+        self.data = data
+
+    def run(self):
+        """Run the loop of the LIRC interface thread."""
+        _LOGGER.debug("Hekr interface thread started")
+        while not self.stopped.isSet():
+            state, action, data = asyncio.run_coroutine_threadsafe(self.data.hekr_device.read_response(), self.hass.loop).result()
+            if state == DeviceResponseState.WAIT_NEXT:
+                _LOGGER.debug('Skipping command %s  %s  %s' % (state, action, data))
+            elif DeviceResponseState.SUCCESS:
+                if action == 'devSend':
+                    command, attributes, _ = data
+                    _LOGGER.debug('Received devSend for command %s with data %s' % (command, attributes))
+                    self.data.device_data.update(attributes)
+            elif DeviceResponseState.FAILURE:
+                _LOGGER.error('Error while executing command %s  %s' % (action, data))
+            else:
+                _LOGGER.warning('Unknown response received: %s  %s  %s' % (state, action, data))
+
+
 class HekrSensor(Entity):
     def __init__(self,
                  name: str = None,
@@ -146,6 +181,10 @@ class HekrData:
         self.device_data = {}
         self.entities = entities
 
+        _LOGGER.debug('Starting listener for %s' % str(hekr_device))
+        self.listener = DeviceThreadedListener(self, hass)
+        self.listener.start()
+
     @property
     def sensor_update_commands(self) -> Set[str]:
         update_commands = []
@@ -153,9 +192,9 @@ class HekrData:
             update_commands.extend(self.protocol[CONF_SENSORS][entity.sensor_type].get(CONF_UPDATE_COMMANDS))
         return set(update_commands)
 
-    async def async_propagate(self, disabled: bool = False, dont_update_hass: bool = False) -> None:
+    async def async_propagate(self, device_data, disabled: bool = False, dont_update_hass: bool = False) -> None:
         tasks = []
-        _LOGGER.debug('data to propagate: %s', self.device_data)
+        _LOGGER.debug('data to propagate: %s', device_data)
         for entity in self.entities:
             new_attributes = None
             new_available = False
@@ -170,20 +209,20 @@ class HekrData:
                 monitored_attributes = sensor_group.get(ATTR_MONITORED_ATTRIBUTES)
                 state_attr = sensor_group.get(ATTR_STATE_ATTRIBUTE, None)
 
-                if state_attr in self.device_data:
-                    new_state = self.device_data[state_attr]
+                if state_attr in device_data:
+                    new_state = device_data[state_attr]
                 else:
                     new_state = STATE_OK
 
                 if isinstance(monitored_attributes, list):
                     new_attributes = {
                         key: value
-                        for key, value in self.device_data.items()
+                        for key, value in device_data.items()
                         if key in monitored_attributes
                     }
 
                 elif monitored_attributes:
-                    new_attributes = self.device_data.copy()
+                    new_attributes = device_data.copy()
                     if state_attr and state_attr in new_attributes:
                         del new_attributes[state_attr]
 
@@ -212,48 +251,25 @@ class HekrData:
             await asyncio.wait(tasks)
 
     async def async_update(self, *_, dont_update_hass: bool = False) -> None:
-        try:
-            _LOGGER.debug('Executing heartbeat during update')
-            (state, _, _) = await self.hekr_device.heartbeat()
-
-            if state != DeviceResponseState.SUCCESS:
-                _LOGGER.error('Error while updating data: heartbeat could not execute for device %s', self.hekr_device)
-                raise PlatformNotReady
-
-            _LOGGER.debug('Updating data')
-            new_data = {}
-
-            for command in self.sensor_update_commands:
-                _LOGGER.debug('Executing Hekr command "%s"', command)
-                while True:
-                    state, action, data = await self.hekr_device.command(command)
-
-                    # @TODO: this is a workaround, and should not be here. not even sure if it works
-                    if action == 'heartbeatResp':
-                        _LOGGER.warning('Heartbeat response caught after executing command')
-                    else:
-                        break
-
-                if state == DeviceResponseState.SUCCESS and isinstance(data, tuple):
-                    _LOGGER.debug('Update for command "%s" complete: action %s, data %s', command, action, data)
-                    new_data.update(data[1])
-                else:
-                    _LOGGER.error('Update for command "%s" failed: action %s, data %s', command, action, data)
-
-                await asyncio.sleep(2)
-
+        if self.device_data:
             filter_func = self.protocol.get(CONF_FUNC_FILTER_ATTRIBUTES)
             if callable(filter_func):
-                new_data = filter_func(new_data)
+                self.device_data = filter_func(self.device_data)
 
-            self.device_data.update(new_data)
+            await self.async_propagate(self.device_data, disabled=False, dont_update_hass=False)
+            self.device_data = {}
+        else:
+            await self.async_propagate({}, disabled=True, dont_update_hass=False)
 
-            _LOGGER.debug('Propagating data updates')
-            await self.async_propagate(disabled=False, dont_update_hass=dont_update_hass)
+        try:
+            _LOGGER.debug('Executing heartbeat during update')
+            await self.hekr_device.heartbeat()
 
-        except HekrAPIException:
-            _LOGGER.exception('Hekr API failed to sync')
-            await self.async_propagate(disabled=True, dont_update_hass=dont_update_hass)
+            _LOGGER.debug('Updating data')
+            for command in self.sensor_update_commands:
+                await asyncio.sleep(1)
+                _LOGGER.debug('Executing Hekr command "%s"', command)
+                await self.hekr_device.command(command)
 
         except Exception:
             _LOGGER.exception('Exception occurred during device update')
