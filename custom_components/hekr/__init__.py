@@ -96,6 +96,8 @@ async def async_setup_entry(hass, config_entry: config_entries.ConfigEntry):
             hekr_data.add_device_config(device_id, item_config)
             device = hekr_data.get_add_device(item_config)
 
+            await device.connector.open_connection()
+
             await hekr_data.create_device_registry_entry(config_entry, device)
             await hekr_data.component_setup(config_entry,
                                             sensor=conf.get(CONF_SENSORS),
@@ -311,7 +313,8 @@ class HekrData:
     def add_device(self, hekr_device: 'Device', config: Optional[dict] = None):
         if hekr_device.device_id in self.devices:
             raise Exception('Device already added')
-        _LOGGER.error('Adding device: %s, %s' % (hekr_device, config))
+
+        _LOGGER.debug('Adding device: %s' % hekr_device)
         self.devices[hekr_device.device_id] = hekr_device
         hekr_device.add_callback(self.update_entities_callback)
 
@@ -321,7 +324,7 @@ class HekrData:
     def get_device(self, device_id: str) -> Optional[Device]:
         return self.devices.get(device_id)
 
-    def get_add_device(self, config: ConfigType) -> Tuple[Device, str]:
+    def get_add_device(self, config: ConfigType) -> Device:
         device_id = config.get(CONF_DEVICE_ID)
 
         device = self.get_device(device_id)
