@@ -1,0 +1,43 @@
+{
+    "config": {
+        "title": "Hekr Devices",
+        "step": {
+            "user": {},
+            "account": {},
+            "local": {
+                "title": "Device over LAN",
+                "description": "Configure device accessible directly.",
+                "data": {
+                    "device_id": "Device ID",
+                    "control_key": "Control key",
+                    "host": "Host",
+                    "protocol": "Protocol",
+                    "port": "Port (override protocol default)"
+                }
+            },
+            "sensors": {
+                "title": "Sensors | {name}",
+                "description": "Choose what sensors should be shown with the device.\nConfirm current settings for default mode of operation.",
+                "data": {
+                    "power_meter_general": "General Information",
+                    "power_meter_detailed": "Detailed Information",
+                    "power_meter_status": "Status",
+                    "power_meter_total_consumption": "Total Consumption",
+                    "power_meter_current_consumption": "Current Consumption",
+                    "power_meter_voltage": "Voltage",
+                    "power_meter_current": "Current",
+                    "power_meter_power_factor": "Power Factor",
+                    "power_meter_active_power": "Active Power",
+                    "power_meter_reactive_power": "Reactive Power"
+                }
+            },
+            "switches": {
+                "title": "Switches | {name}",
+                "description": "Choose what switches should be shown with the device.\nConfirm current settings for default mode of operation.",
+                "data": {
+                    "power_meter_main_power": "Main Power"
+                }
+            }
+        }
+    }
+}

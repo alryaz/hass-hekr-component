@@ -6,8 +6,8 @@
     "codeowners": [
         "@alryaz"
     ],
-    "config_flow": false,
+    "config_flow": true,
     "requirements": [
-        "hekrapi==0.0.10"
+        "hekrapi==0.1.0"
     ]
 }
