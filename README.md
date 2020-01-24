@@ -5,8 +5,6 @@
 >[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/alryaz/hass-hekr-component/graphs/commit-activity)
 
 ## ❗❗❗ WARNING ❗❗❗
-***KNOWN BUG AT LARGE:*** Entities are not deleted after deleting integration.
-  
 **THIS PROJECT IS HIGHLY _WORK-IN-PROGRESS_!!!**
 Things are subject to change drastically until at least two to three different Hekr implementations are discovered and
 added to the integration as well as the parent python module. Please, read release notes carefully before installing
@@ -40,7 +38,9 @@ hekr:
       device_id: ESP_2M_AABBCCDDEEFF
       control_key: 202cb962ac59075b964b07152d234b70
       protocol: power_meter
-      sensors: general
+      sensors:
+        - general
+        - detailed
       switches: main_power
 ```
 
@@ -86,6 +86,7 @@ sensor:
     - active_power
     - reactive_power
 ```
+
 #### Switches
 ```yaml
 switch:

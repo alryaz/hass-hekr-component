@@ -2,18 +2,15 @@
 import asyncio
 import logging
 from asyncio import Task
-from typing import Optional, Dict, List, Set, TYPE_CHECKING, Tuple, Union, Callable
+from typing import Optional, Dict, List, Set, TYPE_CHECKING, Tuple, Union, Callable, Sized, Iterable
 
-import homeassistant.helpers.config_validation as cv
 from homeassistant import config_entries
 from homeassistant.const import CONF_TOKEN, CONF_PROTOCOL, CONF_HOST, CONF_PORT, EVENT_HOMEASSISTANT_STOP, \
     EVENT_HOMEASSISTANT_START, CONF_NAME, CONF_SCAN_INTERVAL, CONF_PLATFORM
-from homeassistant.helpers.device_registry import DeviceRegistry
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.typing import HomeAssistantType, ConfigType
 
-from hekrapi import Listener, ACTION_COMMAND_RESPONSE, ACTION_DEVICE_MESSAGE, DeviceResponseState, DeviceID
-from hekrapi.account import Account
+from hekrapi import ACTION_COMMAND_RESPONSE, ACTION_DEVICE_MESSAGE, DeviceResponseState, DeviceID
 from hekrapi.device import Device
 from hekrapi.exceptions import HekrAPIException
 from .const import *
@@ -21,6 +18,7 @@ from .schemas import CONFIG_SCHEMA
 from .supported_protocols import SUPPORTED_PROTOCOLS
 
 if TYPE_CHECKING:
+    from homeassistant.helpers.device_registry import DeviceRegistry, DeviceEntry
     from hekrapi.device import Device, _BaseConnector
     from .sensor import HekrEntity
 
@@ -42,12 +40,12 @@ async def async_setup(hass, yaml_config):
             _LOGGER.debug('Device entry from YAML: %s' % item_config)
 
             device_id = item_config.get(CONF_DEVICE_ID)
-            if hekr_data.get_device_config(device_id):
+            if device_id in hekr_data.devices_config:
                 _LOGGER.warning('Device with ID "%s" set up multiple times. Please, check your configuration.')
                 continue
 
             _LOGGER.debug('Adding device entry with ID "%s"' % device_id)
-            hekr_data.add_device_config(device_id, item_config)
+            hekr_data.devices_config[device_id] = item_config
             hass.async_create_task(
                 hass.config_entries.flow.async_init(
                     DOMAIN,
@@ -64,53 +62,79 @@ async def async_setup(hass, yaml_config):
     return True
 
 
-async def async_setup_entry(hass, config_entry: config_entries.ConfigEntry):
-    hekr_data = HekrData.get_instance(hass)
+async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry):
+    conf = config_entry.data
 
+    hekr_data = HekrData.get_instance(hass)
     hass_devices_config = hekr_data.devices_config
 
-    conf = config_entry.data
-    config_type = CONF_DEVICE if CONF_DEVICE in conf else CONF_ACCOUNT  # @TODO: placeholder solution
-    item_config = conf[config_type]
-
-    device_id = item_config.get(CONF_DEVICE_ID)
-
-    if config_entry.source == config_entries.SOURCE_IMPORT:
-        # incoming entry is an imported one
-        if config_type == CONF_DEVICES and device_id not in hass_devices_config:
-            # previously created via YAML config entry is removed from file, remove from storage too
-            _LOGGER.info('Removing entry %s after removal from YAML configuration.' % config_entry.entry_id)
-            hass.async_create_task(
-                hass.config_entries.async_remove(config_entry.entry_id)
-            )
-            return False
-
-    elif config_type == CONF_DEVICES:
-        if device_id in hass_devices_config:
-            _LOGGER.warning('Duplicate entry for device "%s" detected. Please, check your integrations.' % device_id)
-            return False
-
     try:
-        if config_type == CONF_DEVICE:
-            _LOGGER.debug('Adding device with config: %s' % item_config)
-            hekr_data.add_device_config(device_id, item_config)
-            device = hekr_data.get_add_device(item_config)
+        if CONF_DEVICE in conf:
+            device_cfg = conf[CONF_DEVICE]
+            device_id = device_cfg.get(CONF_DEVICE_ID)
 
-            await device.connector.open_connection()
+            if config_entry.source == config_entries.SOURCE_IMPORT:
+                if device_id not in hass_devices_config:
+                    _LOGGER.info('Removing entry %s after removal from YAML configuration.' % config_entry.entry_id)
+                    hass.async_create_task(
+                        hass.config_entries.async_remove(config_entry.entry_id)
+                    )
+                    return False
+            elif device_id in hass_devices_config:
+                _LOGGER.warning('Duplicate entry for device "%s" detected. Please, check your integrations.' % device_id)
+                return False
 
-            await hekr_data.create_device_registry_entry(config_entry, device)
-            await hekr_data.component_setup(config_entry,
-                                            sensor=conf.get(CONF_SENSORS),
-                                            switch=conf.get(CONF_SWITCHES))
-        else:
-            _LOGGER.warning('Unknown config: %s' % item_config)
+            _LOGGER.debug('Setting up config entry for device with ID "%s"' % device_id)
+            hekr_data.devices_config[device_id] = device_cfg
+
+            device = await hekr_data.create_connected_device(device_cfg)
+            #await hekr_data.create_device_registry_entry(device, config_entry.entry_id)
+            hekr_data.setup_entities(config_entry)
+
+            _LOGGER.debug('Successfully set up device with ID "%s"' % device_id)
+            return True
+
     except HekrAPIException:
         _LOGGER.exception("API exception while setting up config entry %s" % config_entry.entry_id)
         return False
 
+    _LOGGER.error('Unknown configuration format for entry ID %s, must remove' % config_entry.entry_id)
+    hass.async_create_task(
+        hass.config_entries.async_remove(config_entry.entry_id)
+    )
+    return False
+
+
+async def async_unload_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry):
+    _LOGGER.debug('Unloading Hekr config entry with ID "%s"' % config_entry.entry_id)
+    conf = config_entry.data
+
+    hekr_data = HekrData.get_instance(hass)
+
+    try:
+        if CONF_DEVICE in conf:
+            device_cfg = conf[CONF_DEVICE]
+            device_id = device_cfg.get(CONF_DEVICE_ID)
+
+            _LOGGER.debug('Unloaded device ID: %s, device config: %s' % (device_id, device_cfg))
+
+            #await hekr_data.delete_device_registry_entry(device_id)
+            await asyncio.wait(hekr_data.unload_entities(config_entry))
+
+            device = hekr_data.devices.pop(device_id)
+            if device.connector.listener is not None:
+                device.connector.listener.stop()
+            await device.connector.close_connection()
+
+            if config_entry.source != config_entries.SOURCE_IMPORT:
+                del hekr_data.devices_config[device_id]
+
+    except HekrAPIException:
+        _LOGGER.exception('Exception occurred while unloading entry %s' % config_entry.entry_id)
+
     return True
 
-
+AnyDeviceIdentifier = Union[DeviceID, 'Device']
 class HekrData:
     @classmethod
     def get_instance(cls, hass):
@@ -124,18 +148,14 @@ class HekrData:
         if isinstance(hass.data.get(DOMAIN), HekrData):
             raise Exception('One instance of HekrData is already installed')
 
-        self.devices: Dict[DeviceID, 'Device'] = dict()
-        self.devices_config = dict()
-        self.accounts: Dict[str, Account] = dict()
-        self.accounts_config = dict()
-        self.update_intervals: Dict[DeviceID, Dict[str, timedelta]] = dict()
-
-        self.device_entities: Dict[DeviceID, Dict['HekrEntity', timedelta]] = dict()
-        self.current_updaters: Dict[DeviceID, Dict[Tuple[str, timedelta], Callable]] = dict()
-
         self.hass = hass
-        self._listener_tasks: List[Tuple[Listener, Task]] = list()
-        self._device_registry: Optional[DeviceRegistry] = None
+
+        self.devices: Dict[DeviceID, 'Device'] = dict()
+        self.devices_config: Dict[DeviceID, ConfigType] = dict()
+        self.device_entries: Dict[DeviceID, DeviceEntry] = dict()
+        self.update_intervals: Dict[DeviceID, Dict[str, timedelta]] = dict()
+        self.device_entities: Dict[DeviceID, List['HekrEntity']] = dict()
+        self.updaters: Dict[DeviceID, Callable] = dict()
 
         self.use_model_from_protocol = DEFAULT_USE_MODEL_FROM_PROTOCOL
 
@@ -145,6 +165,7 @@ class HekrData:
         self.hass.bus.async_listen_once(
             EVENT_HOMEASSISTANT_STOP, self.homeassistant_stop
         )
+
 
     # Helper methods (not related to HekrData directly)
     @staticmethod
@@ -159,28 +180,41 @@ class HekrData:
 
         return None
 
+    @staticmethod
+    def resolve_device_id(device_id: AnyDeviceIdentifier) -> str:
+        if isinstance(device_id, str):
+            return device_id
+        return device_id.device_id
+
+    def resolve_device(self, device_id: AnyDeviceIdentifier) -> 'Device':
+        if isinstance(device_id, str):
+            return self.devices[device_id]
+        return device_id
+
+
     # HomeAssistant event listeners
     async def homeassistant_start(self, *_):
         pass
 
     async def homeassistant_stop(self, *_):
         _LOGGER.debug('Hekr system is shutting down')
-        for listener, task in self._listener_tasks:
-            if listener.is_running:
-                _LOGGER.debug('Stopping listener: %s' % listener)
+        for device_id, device in self.devices.items():
+            connector = device.connector
+            listener = connector.listener
+            if listener is not None and listener.is_running:
+                _LOGGER.debug('Shutting down listener for device ID "%s"' % device_id)
                 listener.stop()
 
-        for device in self.devices.values():
-            if device.connector.is_connected:
-                _LOGGER.debug('Closing connector: %s' % device.connector)
-                await device.connector.close_connection()
+            if connector.is_connected:
+                _LOGGER.debug('Shutting down connector for device ID "%s"' % device_id)
+                await connector.close_connection()
 
     async def update_entities_callback(self, hekr_device, message_id, state, action, data):
         if hekr_device and action in (ACTION_COMMAND_RESPONSE, ACTION_DEVICE_MESSAGE) \
                 and state == DeviceResponseState.SUCCESS:
 
-            _LOGGER.debug('Received successful response from information command (action: %s) with data: %s'
-                          % (action, data))
+            _LOGGER.debug('Received response (message ID: %d) from information command (action: %s) with data: %s'
+                          % (message_id, action, data))
             command, data, frame_number = data
 
             update_entities = self.device_entities.get(hekr_device.device_id)
@@ -197,139 +231,150 @@ class HekrData:
                 ]
 
                 if tasks:
-                    _LOGGER.debug('Performing update on %d entities' % len(tasks))
+                    _LOGGER.debug('Performing update on %d entities for command "%s"' % (len(tasks), command.name))
                     await asyncio.wait(tasks)
                     _LOGGER.debug('Update complete!')
+                else:
+                    _LOGGER.debug('No updates scheduled for command "%s"' % command.name)
 
-    # Setup methods
-    async def create_device_registry_entry(self, config_entry: config_entries.ConfigEntry,
-                                           device: 'Device'):
-        """Create device registry entry for device."""
-        device_cfg = config_entry.data[CONF_DEVICE]
+
+    # Device registry management
+    async def get_device_registry_entry(self, device_id: AnyDeviceIdentifier) -> Optional['DeviceEntry']:
+        device_id = self.resolve_device_id(device_id)
+        device_registry = await self.hass.helpers.device_registry.async_get_registry()
+        return device_registry.async_get(self.device_entries[device_id])
+
+    async def delete_device_registry_entry(self, device_id: AnyDeviceIdentifier) -> None:
+        device_id = self.resolve_device_id(device_id)
+        device_registry: DeviceRegistry = await self.hass.helpers.device_registry.async_get_registry()
+        device_registry.async_remove_device(self.device_entries[device_id].id)
+
+    def get_device_info_dict(self, device: AnyDeviceIdentifier):
+        device = self.resolve_device(device)
+        device_cfg = self.devices_config[device.device_id]
+
         protocol_id = device_cfg.get(CONF_PROTOCOL)
         protocol = SUPPORTED_PROTOCOLS[protocol_id]
+
+        attrs = dict()
+        attrs['identifiers'] = {(DOMAIN, device.device_id)}
 
         if device.device_info is None:
             model = protocol.get(PROTOCOL_NAME, protocol_id)
             manufacturer = None
-            attrs = {
-                'connections': set(),
-                'name': device_cfg.get(CONF_NAME),
-            }
+            attrs['connections'] = set()
+            attrs['name'] = device_cfg.get(CONF_NAME)
         else:
             model = device.product_name
             manufacturer = None
-            attrs = {
-                'connections': set(),
-                'name': device.device_name,
-            }
+            attrs['connections'] = set()
+            attrs['name'] = device.device_name
+            attrs['sw_version'] = device.firmware_version
 
         if self.use_model_from_protocol:
-            model = protocol.get(PROTOCOL_MODEL, model)
-            manufacturer = protocol.get(PROTOCOL_MANUFACTURER, manufacturer)
+            attrs['model'] = protocol.get(PROTOCOL_MODEL, model)
+            attrs['manufacturer'] = protocol.get(PROTOCOL_MANUFACTURER, manufacturer)
         else:
-            model = model or protocol.get(PROTOCOL_MODEL)
-            manufacturer = manufacturer or protocol.get(PROTOCOL_MANUFACTURER)
+            attrs['model'] = model or protocol.get(PROTOCOL_MODEL)
+            attrs['manufacturer'] = manufacturer or protocol.get(PROTOCOL_MANUFACTURER)
 
-        if self._device_registry is None:
-            self._device_registry: Optional[
-                DeviceRegistry] = await self.hass.helpers.device_registry.async_get_registry()
+        return attrs
 
-        return self._device_registry.async_get_or_create(
-            config_entry_id=config_entry.entry_id,
-            identifiers={(DOMAIN, device.device_id)},
-            model=model,
-            manufacturer=manufacturer,
+    async def create_device_registry_entry(self, device: 'Device', config_entry_id: str) -> 'DeviceEntry':
+        """Create device registry entry for device."""
+        attrs = self.get_device_info_dict(device)
+        dev_reg: 'DeviceRegistry' = await self.hass.helpers.device_registry.async_get_registry()
+        device_entry = dev_reg.async_get_or_create(
+            config_entry_id=config_entry_id,
             **attrs
         )
 
-    async def get_device_from_registry(self, device: Union[DeviceID, 'Device']):
-        if self._device_registry is None:
-            self._device_registry: Optional[
-                DeviceRegistry] = await self.hass.helpers.device_registry.async_get_registry()
+        self.device_entries[device.device_id] = device_entry
 
-        return await self._device_registry.async_get_device({(DOMAIN, device.device_id)})
+        return device_entry
 
-    async def component_setup(self, config_entry, **kwargs):
+    # Entity management
+    def setup_entities(self, config_entry: config_entries.ConfigEntry) -> List[Task]:
+        # @TODO: Refactor for CONF_DOMAINS
         _LOGGER.debug('Setting up components for config entry %s' % config_entry.entry_id)
-        set_up_components = []
-        for component, to_setup in kwargs.items():
-            if to_setup is not False:
-                set_up_components.append(component)
-                self.hass.async_create_task(
-                    self.hass.config_entries.async_forward_entry_setup(config_entry, component)
-                )
+        tasks = []
+        for conf_key, (entity_domain, protocol_key) in CONF_DOMAINS.items():
+            _LOGGER.debug('Forwarding entry ID %s set up for entity domain %s for'
+                          % (config_entry.entry_id, entity_domain))
 
-        _LOGGER.debug('Set up components: %s' % ', '.join(set_up_components))
+            tasks.append(self.hass.async_create_task(
+                self.hass.config_entries.async_forward_entry_setup(config_entry, entity_domain)
+            ))
 
-        return set_up_components
+        return tasks
 
-    def get_device_protocol(self, device_id: Union[DeviceID, 'Device']):
-        if isinstance(device_id, Device):
-            device_id = device_id.device_id
-        device_cfg = self.get_device_config(device_id)
-        protocol_id = device_cfg.get(CONF_PROTOCOL)
+    def unload_entities(self, config_entry: config_entries.ConfigEntry) -> List[Task]:
+        _LOGGER.debug('Unloading components for config entry %s' % config_entry.entry_id)
+        tasks = []
+        for conf_key, (entity_domain, protocol_key) in CONF_DOMAINS.items():
+            _LOGGER.debug('Forwarding entry ID %s set up for entity domain %s for'
+                          % (config_entry.entry_id, entity_domain))
+
+            tasks.append(self.hass.async_create_task(
+                self.hass.config_entries.async_forward_entry_unload(config_entry, entity_domain)
+            ))
+
+        return tasks
+
+    # Setup methods
+    def get_device_protocol(self, device_id: AnyDeviceIdentifier):
+        device_id = self.resolve_device_id(device_id)
+        protocol_id = self.devices_config[device_id].get(CONF_PROTOCOL)
         return SUPPORTED_PROTOCOLS.get(protocol_id)
 
-    def add_entities_for_update(self, device: Union[str, 'Device'], entities: Union['HekrEntity', List['HekrEntity']],
-                                update_interval: Optional[timedelta] = None):
-        if isinstance(device, str):
-            device_id = device
-            device = self.get_device(device_id)
-        if device is None:
-            raise Exception('Device "%s" not found' % device_id)
+    def create_device(self, config: ConfigType) -> 'Device':
+        _LOGGER.debug('Creating device via get_add_device with config: %s' % config)
+        protocol_id = config.get(CONF_PROTOCOL)
+        protocol = SUPPORTED_PROTOCOLS[protocol_id]
 
-        if not isinstance(entities, list):
-            entities = [entities]
+        from hekrapi.device import Device, CloudConnector, LocalConnector
 
-        if update_interval is None:
-            update_interval = DEFAULT_SCAN_INTERVAL
-        elif isinstance(update_interval, int):
-            update_interval = timedelta(seconds=update_interval)
-        elif isinstance(update_interval, dict):
-            update_interval: timedelta = cv.time_period_dict(update_interval)
-        elif not isinstance(update_interval, timedelta):
-            raise TypeError('Invalid "update_interval" type: %s' % type(update_interval))
+        token = config.get(CONF_TOKEN)
+        if token is None:
+            connect_port = config.get(CONF_PORT, protocol.get(PROTOCOL_PORT))
+            if connect_port is None:
+                raise Exception('Protocol "%s" for device with ID "%s" does not provide default port. Please, '
+                                'configure port manually.' % (protocol_id, config.get(CONF_DEVICE_ID)))
 
-        _LOGGER.debug('Add callback for device %s, entities %s, update_interval %s'
-                      % (device, entities, update_interval))
+            connector = LocalConnector(
+                host=config.get(CONF_HOST),
+                port=connect_port,
+                application_id=config.get(CONF_APPLICATION_ID, DEFAULT_APPLICATION_ID),
+            )
+        else:
+            connector = CloudConnector(
+                token=config.get(CONF_TOKEN),
+                connect_host=config.get(CONF_CLOUD_HOST, DEFAULT_CLOUD_HOST),
+                connect_port=config.get(CONF_CLOUD_PORT, DEFAULT_CLOUD_PORT),
+                application_id=config.get(CONF_APPLICATION_ID, DEFAULT_APPLICATION_ID),
+            )
 
-        device_entities = self.device_entities.setdefault(device.device_id, dict())
-        device_entities.update({
-            entity: update_interval
-            for entity in entities
-        })
+        device = Device(
+            device_id=config.get(CONF_DEVICE_ID),
+            control_key=config.get(CONF_CONTROL_KEY),
+            protocol=protocol[PROTOCOL_DEFINITION]
+        )
+        device.connector = connector
+        device.add_callback(self.update_entities_callback)
+        self.devices[device.device_id] = device
+        self.devices_config[device.device_id] = config
 
-        self.refresh_updaters()
+        return device
 
-    # Device config management
-    def add_device_config(self, device_id: DeviceID, config: dict):
-        self.devices_config[device_id] = config
-
-    def get_device_config(self, device_id: DeviceID) -> Optional[dict]:
-        return self.devices_config.get(device_id)
-
-    # Device management
-    def add_device(self, hekr_device: 'Device', config: Optional[dict] = None):
-        if hekr_device.device_id in self.devices:
-            raise Exception('Device already added')
-
-        _LOGGER.debug('Adding device: %s' % hekr_device)
-        self.devices[hekr_device.device_id] = hekr_device
-        hekr_device.add_callback(self.update_entities_callback)
-
-        if config is not None:
-            self.add_device_config(hekr_device.device_id, config)
-
-    def get_device(self, device_id: str) -> Optional[Device]:
-        return self.devices.get(device_id)
-
-    def get_add_device(self, config: ConfigType) -> Device:
+    def get_create_device(self, config: ConfigType, compare_configs: bool = True) -> 'Device':
         device_id = config.get(CONF_DEVICE_ID)
 
-        device = self.get_device(device_id)
-        if device is not None:
-            device_config = self.get_device_config(device_id)
+        device: Optional['Device'] = self.devices.get(device_id)
+        if device is None:
+            device = self.create_device(config)
+
+        elif compare_configs:
+            device_config = self.devices_config[device_id]
 
             exclude_compare = [*CONF_DOMAINS.keys(), CONF_SCAN_INTERVAL, CONF_PLATFORM, CONF_NAME]
             invalid_keys = []
@@ -338,170 +383,121 @@ class HekrData:
                     invalid_keys.append(conf_key)
 
             if invalid_keys:
-                raise Exception("Cannot create device because a similar one exists, but with different configuration on"
-                                "keys: %s" % ", ".join(invalid_keys))
-
-        else:
-            _LOGGER.debug('Creating device via get_add_device with config: %s' % config)
-            protocol_id = config.get(CONF_PROTOCOL)
-            protocol = SUPPORTED_PROTOCOLS[protocol_id]
-
-            from hekrapi.device import Device, CloudConnector, LocalConnector
-
-            token = config.get(CONF_TOKEN)
-            if token is None:
-                connect_port = config.get(CONF_PORT, protocol.get(PROTOCOL_PORT))
-                if connect_port is None:
-                    raise Exception('Protocol "%s" for device with ID "%s" does not provide default port. Please, '
-                                    'configure port manually.' % (protocol_id, device_id))
-
-                connector = LocalConnector(
-                    host=config.get(CONF_HOST),
-                    port=connect_port,
-                    application_id=config.get(CONF_APPLICATION_ID, DEFAULT_APPLICATION_ID),
-                )
-            else:
-                connector = CloudConnector(
-                    token=config.get(CONF_TOKEN),
-                    connect_host=config.get(CONF_CLOUD_HOST, DEFAULT_CLOUD_HOST),
-                    connect_port=config.get(CONF_CLOUD_PORT, DEFAULT_CLOUD_PORT),
-                    application_id=config.get(CONF_APPLICATION_ID, DEFAULT_APPLICATION_ID),
-                )
-
-            device = Device(
-                device_id=device_id,
-                control_key=config.get(CONF_CONTROL_KEY),
-                protocol=protocol[PROTOCOL_DEFINITION]
-            )
-            device.connector = connector
-
-            self.add_device(device, config)
-            self.refresh_listeners()
+                raise  Exception("Cannot create device because a similar one exists, but with different configuration on"
+                                 "keys: %s" % ", ".join(invalid_keys))
 
         return device
 
-    # Account config management
-    def add_account_config(self, token: str, config: dict):
-        self.accounts_config[token] = config
+    async def create_connected_device(self, config: ConfigType) -> 'Device':
+        device = self.create_device(config)
+        await device.connector.open_connection()
+        self.refresh_connections()
+        return device
 
-    def get_account_config(self, token: str):
-        return self.accounts_config.get(token)
+    async def get_create_connected_device(self, config: ConfigType) -> 'Device':
+        device = self.get_create_device(config)
+        if device.connector.is_connected:
+            return device
+        await device.connector.open_connection()
+        self.refresh_connections()
+        return device
 
-    # Account management
-    def add_account(self, token: str, account: 'Account', config: Optional[dict] = None):
-        self.accounts[token] = account
-        if config is not None:
-            self.add_account_config(token, config)
 
-    def get_account(self, token: str):
-        return self.accounts.get(token)
-
-    # Listener management
-    @property
-    def active_listeners(self) -> List['Listener']:
-        return [listener for listener, task in self._listener_tasks]
-
-    @property
-    def required_listeners(self) -> Set['Listener']:
-        return set([
-            device.connector.get_listener(listener_factory=self.listener_factory)
-            for device in self.devices.values()
-        ])
-
-    def listener_factory(self, connector: '_BaseConnector'):
-        from hekrapi.device import Listener
-        return Listener(connector,
-                        callback_exec_function=self.hass.add_job,
-                        callback_task_function=self.hass.async_create_task)
-
-    def refresh_listeners(self):
-        _LOGGER.debug('before refresh listeners %s', self._listener_tasks)
-        required_listeners = self.required_listeners
-        _LOGGER.debug('required listeners %s', required_listeners)
-        existing_listeners = set()
-        for lp_pair in self._listener_tasks:
-            listener, task = lp_pair
-            if listener not in required_listeners:
-                _LOGGER.debug('stopping listener %s' % listener)
-                listener.stop()
-                self._listener_tasks.remove(lp_pair)
-            else:
-                existing_listeners.add(listener)
-                if not listener.is_running:
-                    _LOGGER.debug('starting listener %s' % listener)
-                    listener.start()
-
-        for listener in (required_listeners - existing_listeners):
-            self._listener_tasks.append((listener, listener.start()))
-
-        _LOGGER.debug('after refresh listeners %s', self._listener_tasks)
-
-    # Updater management
-    @property
-    def required_updaters(self) -> Dict[DeviceID, Dict[str, timedelta]]:
-        required_updaters = {}
-        for device_id, entities in self.device_entities.items():
-            device_updaters = {}
-            required_updaters[device_id] = device_updaters
-            for entity, update_interval in entities.items():
-                update_command = entity.command_update
-                current_interval = device_updaters.get(update_command)
-                if current_interval is None or current_interval > update_interval:
-                    device_updaters[update_command] = update_interval
-
-        return required_updaters
-
-    # noinspection PyTypeChecker
-    def _create_updater(self, device_id: DeviceID, command: str, interval: timedelta):
+    # Updater and listener management
+    def _create_updater(self, device_id: DeviceID, commands: Set[str], interval: timedelta):
         async def call_command(*_):
-            if device_id in self.devices:
-                await self.devices[device_id].command(command)
+            device = self.devices.get(device_id)
+            if device is None:
+                _LOGGER.debug('Device with ID "%s" is missing, cannot run updater' % device_id)
+                return
 
+            _LOGGER.debug('Running updater for device "%s" with commands: %s' % (device_id, ', '.join(commands)))
+            device = self.devices[device_id]
+            command_iter = iter(commands)
+            first_command = next(command_iter)
+
+            _LOGGER.debug('Running update command: %s' % first_command)
+            await device.command(first_command)
+            for command in command_iter:
+                _LOGGER.debug('Sleeping for 5 seconds before running command: %s' % command)
+                await asyncio.sleep(5)
+                _LOGGER.debug('Running update command: %s' % command)
+                await device.command(command)
+
+        len_cmd = len(commands)
+        # assumed: 1 second per command, 5 second intervals between commands
+        min_seconds = len_cmd + (len_cmd - 1) * 5
+        if interval.seconds < min_seconds:
+            _LOGGER.warning('Interval provided for updater (%d seconds) is too low to perform updates! '
+                            'Adjusted automatically to %d seconds to prevent hiccups.'
+                            % (interval.seconds, min_seconds))
+            interval = timedelta(seconds=min_seconds)
+
+        # noinspection PyTypeChecker
         return async_track_time_interval(
             hass=self.hass,
             action=call_command,
             interval=interval
         )
 
-    def refresh_updaters(self):
-        required_updaters = self.required_updaters
-        _LOGGER.debug('Required updaters: %s' % required_updaters)
-        current_updaters = self.current_updaters
-        _LOGGER.debug('Current updaters: %s' % current_updaters)
-        device_ids: Set[str] = {*required_updaters.keys(), *current_updaters.keys()}
-        for device_id in device_ids:
-            _LOGGER.debug('Processing updaters for "%s"' % device_id)
-            if device_id in required_updaters and device_id in current_updaters:
-                device_required_updaters: Set[Tuple[str, timedelta]] = \
-                    {(command, update_interval) for command, update_interval in required_updaters[device_id].items()}
-                device_current_updaters: Dict[Tuple[str, timedelta], Callable] = current_updaters[device_id]
+    def _refresh_updaters(self):
+        for device_id, entities in self.device_entities.items():
+            if device_id in self.updaters:
+                # cancel running updater
+                self.updaters[device_id]()
+                del self.updaters[device_id]
 
-                for key in (device_current_updaters.keys() - device_required_updaters):
-                    # remove unneeded updaters
-                    _LOGGER.debug('Removed updater on %s for cmd %s with interval %s'
-                                  % (device_id, key[0], key[1]))
-                    device_current_updaters[key]()
-                    del device_current_updaters[key]
+            update_commands = set([entity.command_update for entity in entities])
+            if update_commands:
+                _LOGGER.debug('Creating updater for device with ID "%s" with commands: %s'
+                              % (device_id, ', '.join(update_commands)))
+                device_cfg = self.devices_config[device_id]
+                interval = device_cfg.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+                if isinstance(interval, int):
+                    interval = timedelta(seconds=interval)
 
-                for command, update_interval in (device_required_updaters - device_current_updaters.keys()):
-                    # add new updaters
-                    _LOGGER.debug('Added updater on %s for cmd %s with interval %s'
-                                  % (device_id, command, update_interval))
-
-                    # noinspection PyTypeChecker
-                    device_current_updaters[(command, update_interval)] = \
-                        self._create_updater(device_id, command, update_interval)
-
-            elif device_id in required_updaters:
-                current_updaters[device_id] = {
-                    (command, update_interval): self._create_updater(device_id, command, update_interval)
-                    for command, update_interval in required_updaters[device_id].items()
-                }
-                _LOGGER.debug('Added %d updaters for device "%s"' % (len(current_updaters[device_id]), device_id))
+                self.updaters[device_id] = self._create_updater(
+                    device_id=device_id,
+                    commands=update_commands,
+                    interval=interval,
+                )
             else:
-                for (command, update_interval), stopper in current_updaters[device_id].items():
-                    stopper()
-                _LOGGER.debug('Removed %d updaters for device "%s"' % (len(current_updaters[device_id]), device_id))
-                del current_updaters[device_id]
+                _LOGGER.debug('No updater required for device with ID "%s"' % device_id)
 
-        _LOGGER.debug('Refreshed updaters: %s' % self.current_updaters)
+        _LOGGER.debug('Refreshed updaters: %s' % self.updaters)
+
+    def _create_listener(self, connector: '_BaseConnector'):
+        from hekrapi.device import Listener
+        return Listener(connector,
+                        callback_exec_function=self.hass.add_job,
+                        callback_task_function=self.hass.async_create_task)
+
+    def _refresh_listeners(self):
+        required_device_ids = self.updaters.keys()
+        _LOGGER.debug('Required device IDs for listening: %s' % required_device_ids)
+        active_listeners = set()
+        required_listeners = set()
+        for device_id, device in self.devices.items():
+            if device_id in required_device_ids:
+                listener = device.connector.get_listener(listener_factory=self._create_listener)
+                required_listeners.add(listener)
+                if listener.is_running:
+                    active_listeners.add(listener)
+            else:
+                listener = device.connector.listener
+                if listener is not None and listener.is_running:
+                    active_listeners.add(listener)
+
+        for listener in active_listeners - required_listeners:
+            if listener.is_running:
+                listener.stop()
+
+        for listener in required_listeners - active_listeners:
+            if not listener.is_running:
+                listener.start()
+
+    def refresh_connections(self):
+        # 1. Refresh updaters
+        self._refresh_updaters()
+        # 2. Refresh listeners
+        self._refresh_listeners()

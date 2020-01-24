@@ -3,7 +3,7 @@ from homeassistant.const import (
     ATTR_NAME, ATTR_ICON, ATTR_UNIT_OF_MEASUREMENT,
     POWER_WATT, ENERGY_KILO_WATT_HOUR,
     STATE_OK, STATE_PROBLEM, STATE_ON, STATE_OFF, ATTR_STATE,
-    ATTR_DEVICE_CLASS, DEVICE_CLASS_POWER)
+    ATTR_DEVICE_CLASS, DEVICE_CLASS_POWER, STATE_UNKNOWN, STATE_UNAVAILABLE)
 
 from hekrapi.protocols.power_meter import PROTOCOL as PROTOCOL_POWER_METER, VoltageWarning, PowerSupplyWarning, \
     CurrentWarning
@@ -14,9 +14,10 @@ from .const import ATTR_MONITORED, PROTOCOL_DETECTION, PROTOCOL_DEFINITION, PROT
 
 def power_meter_attribute_filter(attributes: dict) -> dict:
     if "current_energy_consumption" in attributes:
-        current_consumption = round(attributes["current_energy_consumption"] * 1000, 1)
-        del attributes["current_energy_consumption"]
-        attributes[ATTR_CURRENT_POWER_W] = current_consumption
+        attributes["current_energy_consumption"] = round(attributes["current_energy_consumption"] * 1000, 1)
+
+    if "total_active_power" in attributes:
+        attributes["total_active_power"] = round(attributes["total_active_power"] * 1000, 1)
 
     # filter attributes by phase count
     if "phase_count" in attributes:
@@ -33,7 +34,9 @@ def power_meter_attribute_filter(attributes: dict) -> dict:
             value for attribute, value in attributes.items()
             if attribute[:-1] == "current_"
         ]
-        attributes['mean_current'] = float(sum(currents)) / len(currents)
+        total_current = sum(currents)
+        attributes['mean_current'] = round(float(total_current) / len(currents), 3)
+        attributes['total_current'] = total_current
 
     # get mean voltages
     if "voltage_1" in attributes:
@@ -41,7 +44,7 @@ def power_meter_attribute_filter(attributes: dict) -> dict:
             value for attribute, value in attributes.items()
             if attribute[:-1] == "voltage_" and value
         ]
-        attributes['mean_voltage'] = float(sum(voltages)) / len(voltages)
+        attributes['mean_voltage'] = round(float(sum(voltages)) / len(voltages), 1)
 
     # detect state of the device
     attributes["state"] = STATE_OK
@@ -78,14 +81,14 @@ POWER_METER = {
     PROTOCOL_FILTER: power_meter_attribute_filter,
     PROTOCOL_SENSORS: {
         "general": {
-            ATTR_NAME: "General Information", ATTR_ICON: 'mdi:counter',
+            ATTR_NAME: "General Information", ATTR_ICON: 'mdi:eye',
             ATTR_STATE: "state", ATTR_MONITORED: True,
             PROTOCOL_CMD_UPDATE: 'queryDev',
             PROTOCOL_CMD_RECEIVE: 'reportDev',
             PROTOCOL_DEFAULT: False,
         },
         "detailed": {
-            ATTR_NAME: 'Detailed Information', ATTR_ICON: 'mdi:counter',
+            ATTR_NAME: 'Detailed Information', ATTR_ICON: 'mdi:eye-settings',
             ATTR_STATE: "state", ATTR_MONITORED: True,
             PROTOCOL_CMD_UPDATE: 'queryData',
             PROTOCOL_CMD_RECEIVE: 'reportData',
@@ -93,7 +96,11 @@ POWER_METER = {
         },
         # queryDev-related sensors
         "status": {
-            ATTR_NAME: "Status", ATTR_ICON: 'mdi:counter',
+            ATTR_NAME: "Status", ATTR_ICON: {
+                STATE_PROBLEM: 'mdi:alert',
+                STATE_OK: 'mdi:check-circle',
+                PROTOCOL_DEFAULT: 'mdi:help-circle'
+            },
             ATTR_STATE: "state",
             ATTR_MONITORED: ["phase_count", "warning_voltage", "warning_current", "warning_battery"],
             PROTOCOL_CMD_UPDATE: 'queryDev',
@@ -101,15 +108,15 @@ POWER_METER = {
             PROTOCOL_DEFAULT: True,
         },
         "current_consumption": {
-            ATTR_NAME: "Current Consumption", ATTR_ICON: 'mdi:counter',
-            ATTR_STATE: ATTR_CURRENT_POWER_W, ATTR_UNIT_OF_MEASUREMENT: POWER_WATT,
+            ATTR_NAME: "Current Consumption", ATTR_ICON: 'mdi:gauge',
+            ATTR_STATE: "current_energy_consumption", ATTR_UNIT_OF_MEASUREMENT: POWER_WATT,
             ATTR_DEVICE_CLASS: DEVICE_CLASS_POWER,
             PROTOCOL_CMD_UPDATE: 'queryDev',
             PROTOCOL_CMD_RECEIVE: 'reportDev',
             PROTOCOL_DEFAULT: True,
         },
         "total_consumption": {
-            ATTR_NAME: "Total Consumption", ATTR_ICON: "mdi:counter",
+            ATTR_NAME: "Total Consumption", ATTR_ICON: "mdi:sigma",
             ATTR_STATE: "total_energy_consumed", ATTR_UNIT_OF_MEASUREMENT: ENERGY_KILO_WATT_HOUR,
             PROTOCOL_CMD_UPDATE: 'queryDev',
             PROTOCOL_CMD_RECEIVE: 'reportDev',
@@ -118,7 +125,7 @@ POWER_METER = {
 
         # queryData-related sensors
         "voltage": {
-            ATTR_NAME: "Voltage", ATTR_ICON: "mdi:alpha-v-circle",
+            ATTR_NAME: "Mean Voltage", ATTR_ICON: "mdi:alpha-v-circle",
             ATTR_STATE: "mean_voltage", ATTR_UNIT_OF_MEASUREMENT: "V",
             ATTR_MONITORED: ["voltage_1", "voltage_2", "voltage_3", "max_voltage", "min_voltage", "current_frequency"],
             PROTOCOL_CMD_UPDATE: 'queryData',
@@ -126,9 +133,9 @@ POWER_METER = {
             PROTOCOL_DEFAULT: False,
         },
         "current": {
-            ATTR_NAME: "Current", ATTR_ICON: "mdi:alpha-i-circle",
+            ATTR_NAME: "Total Current", ATTR_ICON: "mdi:alpha-i-circle",
             ATTR_STATE: "total_current", ATTR_UNIT_OF_MEASUREMENT: "A",
-            ATTR_MONITORED: ["current_1", "current_2", "current_3", "max_current", "current_frequency"],
+            ATTR_MONITORED: ["mean_current", "current_1", "current_2", "current_3", "max_current", "current_frequency"],
             PROTOCOL_CMD_UPDATE: 'queryData',
             PROTOCOL_CMD_RECEIVE: 'reportData',
             PROTOCOL_DEFAULT: False,
@@ -143,7 +150,7 @@ POWER_METER = {
         },
         "active_power": {
             ATTR_NAME: "Active Power", ATTR_ICON: "mdi:flash",
-            ATTR_STATE: ATTR_CURRENT_POWER_W, ATTR_UNIT_OF_MEASUREMENT: POWER_WATT,
+            ATTR_STATE: "total_active_power", ATTR_UNIT_OF_MEASUREMENT: POWER_WATT,
             ATTR_MONITORED: ["active_power_1", "active_power_2", "active_power_3"],
             PROTOCOL_CMD_UPDATE: 'queryData',
             PROTOCOL_CMD_RECEIVE: 'reportData',
@@ -160,8 +167,13 @@ POWER_METER = {
     },
     PROTOCOL_SWITCHES: {
         "main_power": {
-            ATTR_NAME: "Main Power", ATTR_ICON: "mdi:switch",
+            ATTR_NAME: "Main Power",
+            ATTR_ICON: {
+                STATE_ON: "mdi:electric-switch-closed",
+                PROTOCOL_DEFAULT: "mdi:electric-switch",
+            },
             ATTR_STATE: "switch_state", ATTR_DEVICE_CLASS: DEVICE_CLASS_SWITCH,
+            ATTR_CURRENT_POWER_W: "current_energy_consumption",
             PROTOCOL_CMD_UPDATE: 'queryDev',
             PROTOCOL_CMD_RECEIVE: 'reportDev',
             PROTOCOL_CMD_TURN_ON: ('setSw', {"switch_state": True}),

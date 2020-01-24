@@ -1,0 +1,45 @@
+{
+    "config": {
+        "title": "Hekr Устройства",
+        "step": {
+            "user": {},
+            "account": {},
+            "device": {
+                "title": "Устройство по локальной сети",
+                "description": "Настройка устройства доступного напрямую.",
+                "data": {
+                    "name": "Имя (генерируется автоматически)",
+                    "device_id": "ID устройства (devTid)",
+                    "control_key": "Ключ управления (ctrlKey)",
+                    "host": "Хост",
+                    "protocol": "Протокол",
+                    "port": "Порт (берётся из протокола)",
+                    "scan_interval": "Интервал опроса (в секундах)"
+                }
+            },
+            "additional_sensors": {
+                "title": "Сенсоры | Протокол {protocol_name}",
+                "description": "Choose what sensors should be shown with the device.\nConfirm current settings for default mode of operation.",
+                "data": {
+                    "power_meter_general": "Основная информация",
+                    "power_meter_detailed": "Детальная информация",
+                    "power_meter_status": "Статус",
+                    "power_meter_total_consumption": "Суммарное потребление",
+                    "power_meter_current_consumption": "Текущее потребление",
+                    "power_meter_voltage": "Напряжение",
+                    "power_meter_current": "Сила тока",
+                    "power_meter_power_factor": "Power Factor",
+                    "power_meter_active_power": "Active Power",
+                    "power_meter_reactive_power": "Reactive Power"
+                }
+            },
+            "additional_switches": {
+                "title": "Выключатели | Протокол {protocol_name}",
+                "description": "Choose what switches should be shown with the device.\nConfirm current settings for default mode of operation.",
+                "data": {
+                    "power_meter_main_power": "Главное Питание"
+                }
+            }
+        }
+    }
+}

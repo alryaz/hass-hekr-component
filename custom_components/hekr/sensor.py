@@ -1,4 +1,5 @@
 """Support for Hekr sensors."""
+import asyncio
 import logging
 from collections import OrderedDict
 from datetime import timedelta
@@ -8,11 +9,13 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components.binary_sensor.device_condition import DEVICE_CLASS_NONE
 from homeassistant.components.sensor import PLATFORM_SCHEMA, DOMAIN as PLATFORM_DOMAIN
+from homeassistant.components.vacuum import STATE_ERROR
 from homeassistant.const import (
     STATE_UNKNOWN, STATE_OK, CONF_PROTOCOL,
     CONF_NAME, ATTR_NAME, ATTR_ICON, ATTR_STATE, ATTR_UNIT_OF_MEASUREMENT, CONF_SCAN_INTERVAL,
     ATTR_DEVICE_CLASS, CONF_HOST, CONF_DEVICE_ID)
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import HomeAssistantType, ConfigType
 
 from . import HekrData
@@ -22,14 +25,15 @@ from .const import DOMAIN, PROTOCOL_DEFAULT, PROTOCOL_CMD_UPDATE, ATTR_MONITORED
 from .schemas import BASE_PLATFORM_SCHEMA, exclusive_auth_methods, test_for_list_correspondence
 from .supported_protocols import SUPPORTED_PROTOCOLS
 
-if TYPE_CHECKING:
-    from hekrapi import Device
-
 _LOGGER = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from hekrapi import MessageID, CommandData
 
 
 class HekrEntity(Entity):
-    def __init__(self, device_id: str, ent_type: str, name: str, config: Dict, update_interval: timedelta):
+    def __init__(self, device_id: str, ent_type: str, name: str, config: Dict, update_interval: timedelta,
+                 init_enable: bool):
         super().__init__()
         _LOGGER.debug('Creating %s entity for device with ID "%s"' % (self.__class__.__name__, device_id))
         self._device_id = device_id
@@ -37,6 +41,7 @@ class HekrEntity(Entity):
         self._name = name
         self._config = config
         self._update_interval = update_interval
+        self._init_enable = init_enable
 
         self._attributes = None
         self._available = False
@@ -47,32 +52,45 @@ class HekrEntity(Entity):
 
     async def async_added_to_hass(self) -> None:
         _LOGGER.debug('Entity %s added to HASS! Setting up callbacks.' % self)
-        HekrData.get_instance(self.hass).add_entities_for_update(
-            device=self._device_id,
-            entities=self,
-            update_interval=self._update_interval
-        )
+        hekr_data = HekrData.get_instance(self.hass)
+        device_entities = hekr_data.device_entities.setdefault(self._device_id, [])
+        device_entities.append(self)
+        hekr_data.refresh_connections()
+
+    async def async_will_remove_from_hass(self) -> None:
+        _LOGGER.debug('Entity %s removed from HomeAssistant' % self)
+        hekr_data = HekrData.get_instance(self.hass)
+        device_entities = hekr_data.device_entities.get(self._device_id)
+        if device_entities:
+            device_entities.remove(self)
+            hekr_data.refresh_connections()
 
     @classmethod
-    def create_entities(cls: Type['HekrEntity'], device_id: str, name: str, types: Union[str, List[str]],
+    def create_entities(cls: Type['HekrEntity'], device_id: str, name: str, types: Union[bool, str, List[str]],
                         configs: Dict[str, dict], update_interval: timedelta):
-        if types is False:
-            return None
-        if not types:
-            types = [ent_type for ent_type, config in configs.items() if config.get(PROTOCOL_DEFAULT) is True]
+        if types is True:
+            init_enable = dict.fromkeys(configs.keys(), True)
         else:
-            all_types = [ent_type for ent_type, config in configs.items()]
-            if types is True:
-                types = all_types
-            else:
-                # check types
-                types = set(types)
-                invalid_types = types - set(all_types)
-                if invalid_types:
-                    raise ValueError('Invalid sensor types: %s' % ', '.join(invalid_types))
+            init_enable = dict.fromkeys(configs.keys(), False)
+            if types is not False:
+                if not types:
+                    # empty types `str`/`list` or `None` is provided, therefore everything default should be added
+                    enabled_types = [ent_type for ent_type, config in configs.items() if config.get(PROTOCOL_DEFAULT) is True]
+                else:
+                    if isinstance(types, str):
+                        # convert single type definition to list
+                        types = [types]
+                    # check types
+                    enabled_types = set(types)
+                    invalid_types = enabled_types - init_enable.keys()
 
-        _LOGGER.debug('Create "%s" entities for device ID "%s" with name "%s" from configs: %s'
-                      % ('", "'.join(types), device_id, name, configs))
+                    if invalid_types:
+                        raise ValueError('Invalid sensor types: %s' % ', '.join(invalid_types))
+
+                init_enable.update(dict.fromkeys(enabled_types, True))
+
+        _LOGGER.debug('Create entities for device ID "%s" with name "%s" with initial states: %s'
+                      % (device_id, name, init_enable))
 
         return [cls(
             device_id=device_id,
@@ -80,9 +98,17 @@ class HekrEntity(Entity):
             ent_type=ent_type,
             config=configs[ent_type],
             update_interval=update_interval,
-        ) for ent_type in types]
+            init_enable=enabled
+        ) for ent_type, enabled in init_enable.items()]
 
-    async def handle_data_update(self, data):
+    async def handle_data_update(self, data: 'CommandData') -> None:
+        """
+        Handle data updates for the entity.
+        Updates are handled by generated updaters via HekrData class. The :func:`HekrEntity.handle_data_update` method
+        handles incoming data response
+        :param data: Incoming data dictionary
+        :type data: Dict[str, Any]
+        """
         _LOGGER.debug('Handling data update for %s entity [%s] with data: %s' % (
             self.__class__.__name__,
             self.entity_id,
@@ -90,47 +116,62 @@ class HekrEntity(Entity):
         ))
 
         state_key = self._config.get(ATTR_STATE)
-        self._state = data[state_key] if state_key else STATE_OK
+        if state_key:
+            if state_key in data:
+                state = data[state_key]
+            else:
+                _LOGGER.error('State "%s" for entity type "%s" not found in received data (%s)!'
+                              % (state_key, self._ent_type, data))
+                state = STATE_ERROR
+        else:
+            state = STATE_OK
 
         additional_keys = self._config.get(ATTR_MONITORED)
+        attributes = None
         if additional_keys is True:
             attributes = OrderedDict()
-            for attribute in data:
+            for attribute in sorted(data):
                 if state_key is None or attribute != state_key:
                     attributes[attribute] = data[attribute]
-            self._attributes = attributes
 
         elif additional_keys is not None:
             attributes = OrderedDict()
             for attribute in sorted(additional_keys):
-                attributes[attribute] = data.get(attribute)
+                if attribute in data:
+                    attributes[attribute] = data[attribute]
+                else:
+                    _LOGGER.warning('Attribute "%s" for entity type "%s" not found in received data (%s)!'
+                                    % (attribute, self._ent_type, data))
+                    attributes[attribute] = STATE_ERROR
+
+        if attributes != self._attributes or state != self._state or not self._available:
+            self._available = True
+            self._state = state
             self._attributes = attributes
+            await self.async_update_ha_state(force_refresh=True)
 
-        else:
-            self._attributes = None
-
-        self._available = True
-
-        await self.async_update_ha_state()
-
-    def _get_hekr_device(self) -> 'Device':
-        return self.hass.data[DOMAIN].get_device(self._device_id)
-
-    def _exec_command(self, command, arguments: Optional[dict] = None):
-        from asyncio import run_coroutine_threadsafe
-        return run_coroutine_threadsafe(self._get_hekr_device().command(command, arguments), self.hass.loop).result()
-
-    def _exec_protocol_command(self, protocol_command):
+    def execute_protocol_command(self, protocol_command: Union[str, 'CommandData']) -> Union[bool, 'MessageID']:
         command = self._config.get(protocol_command)
         if command is not None:
             arguments = None
             if isinstance(command, tuple):
                 command, arguments = command
-            return self._exec_command(command, arguments)
-        return False
+
+            hekr_data = HekrData.get_instance(self.hass)
+            return asyncio.run_coroutine_threadsafe(
+                hekr_data.devices[self._device_id].command(command, arguments),
+                self.hass.loop
+            ).result()
+        else:
+            _LOGGER.error('%s attempted to execute unknown protocol command: %s' % (self, protocol_command))
+            return False
 
     @property
     def should_poll(self) -> bool:
+        """
+        Checks whether polling is required for this entity.
+        See :func:`HekrEntity.handle_data_update` for more info on updates.
+        """
         return False
 
     @property
@@ -138,8 +179,11 @@ class HekrEntity(Entity):
         return self._available
 
     @property
-    def icon(self) -> str:
-        return self._config.get(ATTR_ICON)
+    def icon(self) -> Optional[str]:
+        icon = self._config.get(ATTR_ICON)
+        if isinstance(icon, dict):
+            return icon.get(self._state, icon.get(PROTOCOL_DEFAULT))
+        return icon
 
     @property
     def name(self) -> str:
@@ -179,30 +223,41 @@ class HekrEntity(Entity):
 
     @property
     def device_info(self) -> Optional[Dict[str, Any]]:
-        return {"identifiers": {(DOMAIN, self._device_id)}}
+        return HekrData.get_instance(self.hass).get_device_info_dict(self._device_id)
 
+    @property
+    def entity_registry_enabled_default(self) -> bool:
+        return self._init_enable
 
 async def _setup_entity(logger: logging.Logger, hass: HomeAssistantType, async_add_entities, config: ConfigType,
                         protocol_key: str, config_key: str, entity_domain: str,
                         entity_factory: Type['HekrEntity']):
+    from hekrapi import HekrAPIException
+
     protocol_id = config.get(CONF_PROTOCOL)
     protocol = SUPPORTED_PROTOCOLS[protocol_id]
 
     if protocol_key is not None and protocol_key not in protocol:
-        logger.error('Protocol "%s" does not support "%s" component, and therefore cannot be set up.'
+        logger.error('Protocol "%s" does not support [%s] component, and therefore cannot be set up.'
                      % (entity_domain, protocol_id))
         return False
 
-    hekr_data = HekrData.get_instance(hass)
-    device = hekr_data.get_add_device(config)
-
     try:
+        hekr_data = HekrData.get_instance(hass)
+        device = await hekr_data.get_create_connected_device(config)
+
+        update_interval = config.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        if isinstance(update_interval, int):
+            update_interval = timedelta(seconds=update_interval)
+
+        _LOGGER.debug('TYPES: %s, %s, %s, %s' % (entity_domain, config_key, protocol_key, config))
+
         entities = entity_factory.create_entities(
             device_id=device.device_id,
             name=config.get(CONF_NAME),
             types=config.get(config_key),
             configs=protocol[protocol_key],
-            update_interval=config.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+            update_interval=update_interval,
         )
 
         if entities is None:
@@ -213,12 +268,14 @@ async def _setup_entity(logger: logging.Logger, hass: HomeAssistantType, async_a
         async_add_entities(entities)
         logger.debug('Adding %s(-s) complete on device with ID "%s"' % (entity_domain, device.device_id))
 
-    except ValueError as e:
-        __name__.split('.')[-1].capitalize()
-        logger.exception('%s configuration failed: %s' % (entity_domain.capitalize(), e))
-        return False
+        return True
 
-    return True
+    except HekrAPIException as e:
+        logger.exception('%s configuration failed due to API error: %s' % (entity_domain.capitalize(), e))
+    except ValueError as e:
+        logger.exception('%s configuration failed: %s' % (entity_domain.capitalize(), e))
+
+    return False
 
 
 def create_platform_basics(logger: logging.Logger, entity_domain: str, entity_factory: Type['HekrEntity'],
@@ -264,6 +321,7 @@ def create_platform_basics(logger: logging.Logger, entity_domain: str, entity_fa
                 host=config.get(CONF_HOST),
                 device_id=config.get(CONF_DEVICE_ID),
             )
+
         return await _setup_entity(
             logger=logger,
             hass=hass,
@@ -284,7 +342,7 @@ def create_platform_basics(logger: logging.Logger, entity_domain: str, entity_fa
     return _PLATFORM_SCHEMA, _async_setup_platform, _async_setup_entry
 
 
-class HekrSensor(HekrEntity):
+class HekrSensor(HekrEntity, RestoreEntity):
     @property
     def unique_id(self) -> Optional[str]:
         return '_'.join((self._device_id, PLATFORM_DOMAIN, self._ent_type))

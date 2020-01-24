@@ -1,27 +1,20 @@
-"""Config flow for Soma."""
+"""Config flow for Hekr."""
 import logging
-from collections import OrderedDict
 from typing import Optional, Dict, Tuple
 
-import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_PROTOCOL, CONF_DEVICE_ID, CONF_NAME, CONF_SCAN_INTERVAL
 from homeassistant.helpers import ConfigType
-from homeassistant.helpers.config_validation import positive_time_period_dict
 
-from .const import DOMAIN, PROTOCOL_DEFAULT, CONF_CONTROL_KEY, PROTOCOL_NAME, \
-    DEFAULT_SCAN_INTERVAL, CONF_DEVICE, CONF_ACCOUNT, DEFAULT_NAME_DEVICE, PROTOCOL_PORT, \
-    CONF_DOMAINS
+from .const import DOMAIN, PROTOCOL_NAME, CONF_DEVICE, CONF_ACCOUNT, DEFAULT_NAME_DEVICE, PROTOCOL_PORT, CONF_DOMAINS
+from .schemas import USER_INPUT_DEVICE_SCHEMA, USER_INPUT_ADDITIONAL_SCHEMA
 from .supported_protocols import SUPPORTED_PROTOCOLS
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_PORT = 3000
-
-
 @config_entries.HANDLERS.register(DOMAIN)
 class HekrFlowHandler(config_entries.ConfigFlow):
-    """Handle a config flow."""
+    """Handle a config flow for Hekr config entries."""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
@@ -32,16 +25,6 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         """Instantiate config flow."""
         self._current_type = None
         self._current_config = None
-
-        schema_local = OrderedDict()
-        schema_local[vol.Required(CONF_NAME)] = str
-        schema_local[vol.Required(CONF_DEVICE_ID)] = str
-        schema_local[vol.Required(CONF_CONTROL_KEY)] = str
-        schema_local[vol.Required(CONF_HOST)] = str
-        schema_local[vol.Required(CONF_PROTOCOL)] = vol.In(SUPPORTED_PROTOCOLS.keys())
-        schema_local[vol.Optional(CONF_PORT)] = str
-        schema_local[vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL)] = positive_time_period_dict
-        self.schema_local = schema_local
 
     @property
     def flow_is_import(self):
@@ -66,15 +49,17 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         if self.context.get('source') == config_entries.SOURCE_IMPORT:
             self._current_config[config_key] = None
         else:
-            ent_groups = protocol[protocol_key]
             if user_input is None:
-                return self.async_show_form(step_id=self.prefix_dynamic_config + config_key, data_schema=vol.Schema({
-                    vol.Optional(protocol_id + '_' + ent_type, default=ent_config.get(PROTOCOL_DEFAULT)): bool
-                    for ent_type, ent_config in ent_groups.items()
-                }), description_placeholders={"entity_domain": entity_domain})
+                return self.async_show_form(step_id=self.prefix_dynamic_config + config_key,
+                                            data_schema=USER_INPUT_ADDITIONAL_SCHEMA(protocol_id, protocol_key),
+                                            description_placeholders={
+                                                "entity_domain": entity_domain,
+                                                "name": self._current_config[CONF_NAME],
+                                                "protocol_name": protocol.get(PROTOCOL_NAME, protocol_id)
+                                            })
 
             prefix_len = len(protocol_id) + 1
-            selected_sensors = [option[prefix_len:] for option in user_input if option is True]
+            selected_sensors = [option[prefix_len:] for option in user_input if user_input[option] is True]
             self._current_config[config_key] = selected_sensors or False
 
         return await self._get_next_additional_step()
@@ -103,21 +88,20 @@ class HekrFlowHandler(config_entries.ConfigFlow):
     # Initial step for user interaction
     async def async_step_user(self, user_input=None):
         """Handle a flow start."""
-        # @TODO: this is a placeholder for future account integration
+        if user_input is None:
+            # @TODO: this is a placeholder for future account integration
+            _LOGGER.debug('Initialized user step')
         _LOGGER.debug('Transition: user step -> local step')
         return await self.async_step_device()
-
-    # Account setup
-    async def async_step_account(self, user_input=None):
-        self._current_type = CONF_ACCOUNT
-        return self.async_abort(reason="accounts_not_yet_supported")
 
     # Device setup
     async def async_step_device(self, user_input=None):
         self._current_type = CONF_DEVICE
 
+        print(USER_INPUT_DEVICE_SCHEMA, type(USER_INPUT_DEVICE_SCHEMA))
+
         if user_input is None:
-            return self.async_show_form(step_id="device", data_schema=vol.Schema(self.schema_local))
+            return self.async_show_form(step_id="device", data_schema=USER_INPUT_DEVICE_SCHEMA)
 
         if await self._check_device_exists(user_input[CONF_DEVICE_ID]):
             _LOGGER.info('Device with config %s already exists, not adding' % user_input)
@@ -127,7 +111,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         if protocol_id not in SUPPORTED_PROTOCOLS:
             _LOGGER.warning('Unsupported protocol "%s" provided during config for device "%s".'
                             % (user_input[CONF_DEVICE_ID], protocol_id))
-            return self.async_show_form(step_id="device", data_schema=vol.Schema(self.schema_local), errors={
+            return self.async_show_form(step_id="device", data_schema=USER_INPUT_DEVICE_SCHEMA, errors={
                 "base": "unsupported_protocol"
             })
         protocol = SUPPORTED_PROTOCOLS[protocol_id]
@@ -135,7 +119,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         if not user_input.get(CONF_PORT) and protocol.get(PROTOCOL_PORT) is None:
             _LOGGER.warning('No port provided for device %s; protocol %s does not define default port.'
                             % (user_input[CONF_DEVICE_ID], protocol_id))
-            return self.async_show_form(step_id="device", data_schema=vol.Schema(self.schema_local), errors={
+            return self.async_show_form(step_id="device", data_schema=USER_INPUT_DEVICE_SCHEMA, errors={
                 "base": "protocol_no_port"
             })
 
@@ -161,9 +145,6 @@ class HekrFlowHandler(config_entries.ConfigFlow):
             if await self._check_device_exists(save_config[CONF_DEVICE_ID]):
                 _LOGGER.info('Device with config %s already exists, not adding' % save_config)
                 return self.async_abort(reason="device_already_exists")
-
-            if CONF_SCAN_INTERVAL in config:
-                save_config[CONF_SCAN_INTERVAL] = config[CONF_SCAN_INTERVAL].seconds
 
             _LOGGER.debug('Device entry: %s' % save_config)
 

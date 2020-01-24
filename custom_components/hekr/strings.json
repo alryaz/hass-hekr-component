@@ -4,19 +4,21 @@
         "step": {
             "user": {},
             "account": {},
-            "local": {
+            "device": {
                 "title": "Device over LAN",
                 "description": "Configure device accessible directly.",
                 "data": {
+                    "name": "Name (leave empty to auto-generate)",
                     "device_id": "Device ID",
                     "control_key": "Control key",
                     "host": "Host",
                     "protocol": "Protocol",
-                    "port": "Port (override protocol default)"
+                    "port": "Port (leave empty for protocol default)",
+                    "scan_interval": "Polling interval (in seconds)"
                 }
             },
             "additional_sensors": {
-                "title": "Sensors | {name}",
+                "title": "Sensors | {protocol_name} Protocol",
                 "description": "Choose what sensors should be shown with the device.\nConfirm current settings for default mode of operation.",
                 "data": {
                     "power_meter_general": "General Information",
@@ -32,7 +34,7 @@
                 }
             },
             "additional_switches": {
-                "title": "Switches | {name}",
+                "title": "Switches | {protocol_name} Protocol",
                 "description": "Choose what switches should be shown with the device.\nConfirm current settings for default mode of operation.",
                 "data": {
                     "power_meter_main_power": "Main Power"

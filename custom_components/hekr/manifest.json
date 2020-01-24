@@ -1,13 +1,13 @@
 {
     "domain": "hekr",
     "name": "Hekr",
-    "documentation": "https://github.com/alryaz/home-assistant-custom-components/tree/master/hekr",
+    "documentation": "https://github.com/alryaz/hass-hekr-component",
     "dependencies": [],
     "codeowners": [
         "@alryaz"
     ],
     "config_flow": true,
     "requirements": [
-        "hekrapi==0.1.0"
+        "hekrapi==0.1.1"
     ]
 }

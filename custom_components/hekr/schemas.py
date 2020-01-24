@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.const import CONF_NAME, CONF_SWITCHES, CONF_SCAN_INTERVAL, CONF_DEVICE_ID, CONF_PROTOCOL, \
@@ -5,9 +7,17 @@ from homeassistant.const import CONF_NAME, CONF_SWITCHES, CONF_SCAN_INTERVAL, CO
 
 from .const import CONF_CONTROL_KEY, CONF_APPLICATION_ID, DEFAULT_APPLICATION_ID, CONF_CLOUD_HOST, DEFAULT_CLOUD_HOST, \
     CONF_CLOUD_PORT, DEFAULT_CLOUD_PORT, DEFAULT_SCAN_INTERVAL, DOMAIN, CONF_DEVICES, CONF_USE_MODEL_FROM_PROTOCOL, \
-    DEFAULT_USE_MODEL_FROM_PROTOCOL, CONF_DOMAINS
+    DEFAULT_USE_MODEL_FROM_PROTOCOL, CONF_DOMAINS, PROTOCOL_DEFAULT, PROTOCOL_NAME
 from .supported_protocols import SUPPORTED_PROTOCOLS
 
+try:
+    # newer versions
+    positive_time_period_dict = cv.positive_time_period_dict
+    print('newer version detected')
+except AttributeError:
+    # older versions
+    print('older version detected')
+    positive_time_period_dict = vol.All(cv.time_period_dict, cv.positive_timedelta)
 
 def exclusive_auth_methods(schema: dict):
     host = schema.get(CONF_HOST)
@@ -37,12 +47,11 @@ def test_for_list_correspondence(config_key: str, protocol_key: str):
 
     return validator
 
-
 BASE_DEVICE_SCHEMA = {
     vol.Optional(CONF_NAME): cv.string,
     vol.Optional(CONF_SENSORS): vol.Any(bool, vol.All(cv.ensure_list, [cv.string])),
     vol.Optional(CONF_SWITCHES): vol.Any(bool, vol.All(cv.ensure_list, [cv.string])),
-    vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): cv.positive_time_period_dict,
+    vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): positive_time_period_dict,
 }
 
 BASE_VALIDATOR_DOMAINS = [
@@ -72,6 +81,26 @@ BASE_PLATFORM_SCHEMA = {
 }
 
 DEVICE_SCHEMA = vol.All(BASE_PLATFORM_SCHEMA, exclusive_auth_methods, *BASE_VALIDATOR_DOMAINS)
+
+USER_INPUT_DEVICE = OrderedDict()
+USER_INPUT_DEVICE[vol.Required(CONF_NAME)] = str
+USER_INPUT_DEVICE[vol.Required(CONF_DEVICE_ID)] = str
+USER_INPUT_DEVICE[vol.Required(CONF_CONTROL_KEY)] = str
+USER_INPUT_DEVICE[vol.Required(CONF_HOST)] = str
+USER_INPUT_DEVICE[vol.Required(CONF_PROTOCOL)] = vol.In({
+    p_id: p_def.get(PROTOCOL_NAME, p_id)
+    for p_id, p_def in SUPPORTED_PROTOCOLS.items()
+})
+USER_INPUT_DEVICE[vol.Optional(CONF_PORT)] = str
+USER_INPUT_DEVICE[vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL.seconds)] = int
+
+USER_INPUT_DEVICE_SCHEMA = vol.Schema(USER_INPUT_DEVICE)
+
+USER_INPUT_ADDITIONAL = lambda protocol_id, protocol_key: {
+    vol.Optional(protocol_id + '_' + ent_type, default=ent_config.get(PROTOCOL_DEFAULT)): bool
+    for ent_type, ent_config in SUPPORTED_PROTOCOLS[protocol_id][protocol_key].items()
+}
+USER_INPUT_ADDITIONAL_SCHEMA = lambda *args, **kwargs: vol.Schema(USER_INPUT_ADDITIONAL(*args, **kwargs))
 
 # ACCOUNT_SCHEMA = {
 #     vol.Optional(CONF_NAME, default=DEFAULT_NAME_ACCOUNT): cv.string,
