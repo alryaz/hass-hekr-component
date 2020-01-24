@@ -34,7 +34,7 @@ def exclusive_auth_methods(schema: dict):
 def test_for_list_correspondence(config_key: str, protocol_key: str):
     def validator(values):
         param_val = values.get(config_key)
-        if not param_val:
+        if param_val is None or isinstance(param_val, bool):
             return values
         avail_val = set(SUPPORTED_PROTOCOLS[values.get(CONF_PROTOCOL)][protocol_key].keys())
         invalid_val = set(param_val) - avail_val

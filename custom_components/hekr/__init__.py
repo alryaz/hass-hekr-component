@@ -2,7 +2,7 @@
 import asyncio
 import logging
 from asyncio import Task
-from typing import Optional, Dict, List, Set, TYPE_CHECKING, Tuple, Union, Callable, Sized, Iterable
+from typing import Optional, Dict, List, Set, TYPE_CHECKING, Union, Callable
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_TOKEN, CONF_PROTOCOL, CONF_HOST, CONF_PORT, EVENT_HOMEASSISTANT_STOP, \
@@ -419,14 +419,14 @@ class HekrData:
             _LOGGER.debug('Running update command: %s' % first_command)
             await device.command(first_command)
             for command in command_iter:
-                _LOGGER.debug('Sleeping for 5 seconds before running command: %s' % command)
-                await asyncio.sleep(5)
+                _LOGGER.debug('Sleeping for %d seconds before running command: %s' % (DEFAULT_SLEEP_INTERVAL, command))
+                await asyncio.sleep(DEFAULT_SLEEP_INTERVAL)
                 _LOGGER.debug('Running update command: %s' % command)
                 await device.command(command)
 
         len_cmd = len(commands)
-        # assumed: 1 second per command, 5 second intervals between commands
-        min_seconds = len_cmd + (len_cmd - 1) * 5
+        # assumed: 1 second per command, N second(-s) intervals between commands
+        min_seconds = len_cmd + (len_cmd - 1) * DEFAULT_SLEEP_INTERVAL
         if interval.seconds < min_seconds:
             _LOGGER.warning('Interval provided for updater (%d seconds) is too low to perform updates! '
                             'Adjusted automatically to %d seconds to prevent hiccups.'

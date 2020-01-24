@@ -3,7 +3,7 @@ from homeassistant.const import (
     ATTR_NAME, ATTR_ICON, ATTR_UNIT_OF_MEASUREMENT,
     POWER_WATT, ENERGY_KILO_WATT_HOUR,
     STATE_OK, STATE_PROBLEM, STATE_ON, STATE_OFF, ATTR_STATE,
-    ATTR_DEVICE_CLASS, DEVICE_CLASS_POWER, STATE_UNKNOWN, STATE_UNAVAILABLE)
+    ATTR_DEVICE_CLASS, DEVICE_CLASS_POWER)
 
 from hekrapi.protocols.power_meter import PROTOCOL as PROTOCOL_POWER_METER, VoltageWarning, PowerSupplyWarning, \
     CurrentWarning
@@ -127,7 +127,7 @@ POWER_METER = {
         "voltage": {
             ATTR_NAME: "Mean Voltage", ATTR_ICON: "mdi:alpha-v-circle",
             ATTR_STATE: "mean_voltage", ATTR_UNIT_OF_MEASUREMENT: "V",
-            ATTR_MONITORED: ["voltage_1", "voltage_2", "voltage_3", "max_voltage", "min_voltage", "current_frequency"],
+            ATTR_MONITORED: ["voltage_1", "voltage_2", "voltage_3", "current_frequency"],
             PROTOCOL_CMD_UPDATE: 'queryData',
             PROTOCOL_CMD_RECEIVE: 'reportData',
             PROTOCOL_DEFAULT: False,
@@ -135,7 +135,7 @@ POWER_METER = {
         "current": {
             ATTR_NAME: "Total Current", ATTR_ICON: "mdi:alpha-i-circle",
             ATTR_STATE: "total_current", ATTR_UNIT_OF_MEASUREMENT: "A",
-            ATTR_MONITORED: ["mean_current", "current_1", "current_2", "current_3", "max_current", "current_frequency"],
+            ATTR_MONITORED: ["mean_current", "current_1", "current_2", "current_3", "current_frequency"],
             PROTOCOL_CMD_UPDATE: 'queryData',
             PROTOCOL_CMD_RECEIVE: 'reportData',
             PROTOCOL_DEFAULT: False,

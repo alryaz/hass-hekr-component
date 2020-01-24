@@ -1,5 +1,6 @@
 """Config flow for Hekr."""
 import logging
+from datetime import timedelta
 from typing import Optional, Dict, Tuple
 
 from homeassistant import config_entries
@@ -129,6 +130,10 @@ class HekrFlowHandler(config_entries.ConfigFlow):
                 device_id=user_input[CONF_DEVICE_ID],
                 protocol_name=protocol.get(PROTOCOL_NAME, protocol_id)
             )
+
+        scan_interval = user_input.get(CONF_SCAN_INTERVAL)
+        if scan_interval is not None and isinstance(scan_interval, timedelta):
+            user_input[CONF_SCAN_INTERVAL] = scan_interval.seconds
 
         self._current_config = user_input
 
