@@ -2,7 +2,9 @@
 # HomeAssistant Hekr Integration 
 > HomeAssistant implementation of Hekr API communicator
 >
->[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/alryaz/hass-hekr-component/graphs/commit-activity)
+>[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+>[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+>[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/alryaz/hass-hekr-component/graphs/commit-activity)
 
 ## ❗❗❗ WARNING ❗❗❗
 **THIS PROJECT IS HIGHLY _WORK-IN-PROGRESS_!!!**
@@ -131,18 +133,18 @@ This tutorial is a barebones method to retrieve necessary settings for device to
 1. Look for requests with of `WebSocket` type, or `UDP` type to port `10000`. Once you found at least one, open it and
    look for messages containing `ctrlKey` (=`control_key`) and `devTid` (=`device_id`).
    An example response would look something like this, mind the linebreaks:
-   ```json
+   ```js
    {
      "msgId": 7,
      "action": "devSend",
      "params": {
-       "devTid": "<device ID, something like: ESP_2M_AABBCCDDEEFF>"
+       "devTid": "ESP_2M_AABBCCDDEEFF", // This will be your `device_id`
        "appTid": [],
        "subDevTid": null,
-       "ctrlKey": "<MD5 hash-looking string>",
-       ......
+       "ctrlKey": "202cb962ac59075b964b07152d234b70", // This will be your `control_key`
+       // more data...
      },
-     ......
+     // more data...
    }
    ```
 1. __Congratulations, you're ready!__ You can proceed by using any of the configuration methods described above to add
