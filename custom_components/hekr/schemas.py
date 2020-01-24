@@ -10,14 +10,6 @@ from .const import CONF_CONTROL_KEY, CONF_APPLICATION_ID, DEFAULT_APPLICATION_ID
     DEFAULT_USE_MODEL_FROM_PROTOCOL, CONF_DOMAINS, PROTOCOL_DEFAULT, PROTOCOL_NAME
 from .supported_protocols import SUPPORTED_PROTOCOLS
 
-try:
-    # newer versions
-    positive_time_period_dict = cv.positive_time_period_dict
-    print('newer version detected')
-except AttributeError:
-    # older versions
-    print('older version detected')
-    positive_time_period_dict = vol.All(cv.time_period_dict, cv.positive_timedelta)
 
 def exclusive_auth_methods(schema: dict):
     host = schema.get(CONF_HOST)
@@ -51,7 +43,7 @@ BASE_DEVICE_SCHEMA = {
     vol.Optional(CONF_NAME): cv.string,
     vol.Optional(CONF_SENSORS): vol.Any(bool, vol.All(cv.ensure_list, [cv.string])),
     vol.Optional(CONF_SWITCHES): vol.Any(bool, vol.All(cv.ensure_list, [cv.string])),
-    vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): positive_time_period_dict,
+    vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): cv.time_period,
 }
 
 BASE_VALIDATOR_DOMAINS = [
