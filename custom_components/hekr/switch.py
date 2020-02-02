@@ -25,10 +25,12 @@ class HekrSwitch(HekrEntity, SwitchDevice):
     def turn_on(self, **kwargs: Any) -> None:
         self._state = STATE_ON
         self.execute_protocol_command(PROTOCOL_CMD_TURN_ON)
+        self.schedule_update_ha_state()
 
     def turn_off(self, **kwargs: Any) -> None:
         self._state = STATE_OFF
         self.execute_protocol_command(PROTOCOL_CMD_TURN_OFF)
+        self.schedule_update_ha_state()
 
     async def handle_data_update(self, data):
         power_attr = self._config.get(ATTR_CURRENT_POWER_W)
