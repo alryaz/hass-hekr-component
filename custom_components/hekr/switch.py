@@ -4,6 +4,7 @@ from typing import Any, Optional
 
 from homeassistant.components.switch import PLATFORM_SCHEMA, SwitchDevice, DOMAIN as PLATFORM_DOMAIN, \
     ATTR_CURRENT_POWER_W, ATTR_TODAY_ENERGY_KWH
+from homeassistant.const import STATE_ON
 
 from .const import PROTOCOL_CMD_TURN_ON, PROTOCOL_CMD_TURN_OFF
 from .sensor import HekrEntity, create_platform_basics
@@ -19,7 +20,7 @@ class HekrSwitch(HekrEntity, SwitchDevice):
 
     @property
     def is_on(self) -> bool:
-        return self._attributes['switch_state']
+        return self.state == STATE_ON
 
     def turn_on(self, **kwargs: Any) -> None:
         self.execute_protocol_command(PROTOCOL_CMD_TURN_ON)
