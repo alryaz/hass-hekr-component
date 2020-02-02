@@ -5,7 +5,7 @@ from typing import Optional
 from homeassistant.components.sensor import PLATFORM_SCHEMA, DOMAIN as PLATFORM_DOMAIN
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from hekr.base_platform import HekrEntity, create_platform_basics
+from .base_platform import HekrEntity, create_platform_basics
 
 _LOGGER = logging.getLogger(__name__)
 
