@@ -223,7 +223,7 @@ class HekrEntity(Entity):
     def entity_registry_enabled_default(self) -> bool:
         return self._init_enable
 
-async def _setup_entity(logger: logging.Logger, hass: HomeAssistantType, async_add_entities, config: ConfigType,
+async def _setup_entity(logger: 'logging.Logger', hass: HomeAssistantType, async_add_entities, config: ConfigType,
                         protocol_key: str, config_key: str, entity_domain: str,
                         entity_factory: Type['HekrEntity']):
     from hekrapi import HekrAPIException
@@ -272,7 +272,7 @@ async def _setup_entity(logger: logging.Logger, hass: HomeAssistantType, async_a
     return False
 
 
-def create_platform_basics(logger: logging.Logger, entity_domain: str, entity_factory: Type['HekrEntity'],
+def create_platform_basics(logger: 'logging.Logger', entity_domain: str, entity_factory: Type['HekrEntity'],
                            base_schema: vol.Schema):
     if entity_factory is None:
         entity_factory = HekrEntity
