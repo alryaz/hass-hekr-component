@@ -122,7 +122,7 @@ async def async_unload_entry(hass: HomeAssistantType, config_entry: config_entri
             await asyncio.wait(hekr_data.unload_entities(config_entry))
 
             device = hekr_data.devices.pop(device_id)
-            if device.connector.listener is not None:
+            if device.connector.listener is not None and device.connector.listener.is_running:
                 device.connector.listener.stop()
             await device.connector.close_connection()
 
@@ -470,7 +470,8 @@ class HekrData:
         from hekrapi.device import Listener
         return Listener(connector,
                         callback_exec_function=self.hass.add_job,
-                        callback_task_function=self.hass.async_create_task)
+                        callback_task_function=self.hass.async_create_task,
+                        auto_reconnect=True)
 
     def _refresh_listeners(self):
         required_device_ids = self.updaters.keys()
