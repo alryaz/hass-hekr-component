@@ -1,4 +1,10 @@
-"""Base code to generate other platforms"""
+"""Base code to generate other platforms."""
+
+__all__ = [
+    'HekrEntity',
+    'create_platform_basics',
+]
+
 import asyncio
 from collections import OrderedDict
 from datetime import timedelta

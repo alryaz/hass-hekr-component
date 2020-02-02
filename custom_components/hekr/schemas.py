@@ -1,3 +1,18 @@
+"""Dedicate schema generation."""
+
+__all__ = [
+    'BASE_DEVICE_SCHEMA',
+    'BASE_PLATFORM_SCHEMA',
+    'BASE_VALIDATOR_DOMAINS',
+    'USER_INPUT_DEVICE',
+    'USER_INPUT_DEVICE_SCHEMA',
+    'USER_INPUT_ADDITIONAL',
+    'USER_INPUT_ADDITIONAL_SCHEMA',
+    'CONFIG_SCHEMA',
+    'exclusive_auth_methods',
+    'test_for_list_correspondence',
+]
+
 from collections import OrderedDict
 
 import homeassistant.helpers.config_validation as cv

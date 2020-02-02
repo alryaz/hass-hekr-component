@@ -1,3 +1,10 @@
+"""Supported protocols for Hekr devices."""
+
+__all__ = [
+    'SUPPORTED_PROTOCOLS',
+    'POWER_METER',
+]
+
 from homeassistant.components.switch import ATTR_CURRENT_POWER_W, DEVICE_CLASS_SWITCH
 from homeassistant.const import (
     ATTR_NAME, ATTR_ICON, ATTR_UNIT_OF_MEASUREMENT,

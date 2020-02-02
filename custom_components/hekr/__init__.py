@@ -1,4 +1,18 @@
 """ Basic Hekr protocol implementation based on Wisen app. """
+
+__all__ = [
+    'async_setup',
+    'async_setup_entry',
+    'async_unload_entry',
+    'CONFIG_SCHEMA',
+    'HekrData',
+    'AnyDeviceIdentifier',
+]
+
+__title__ = 'HomeAssistant Hekr Component'
+__version__ = '0.1.6'
+__author__ = 'Alexander Ryazanov <alryaz@xavux.com>'
+
 import asyncio
 import logging
 from asyncio import Task
@@ -20,7 +34,7 @@ from .supported_protocols import SUPPORTED_PROTOCOLS
 if TYPE_CHECKING:
     from homeassistant.helpers.device_registry import DeviceRegistry, DeviceEntry
     from hekrapi.device import Device, _BaseConnector
-    from .sensor import HekrEntity
+    from .base_platform import HekrEntity
 
 _LOGGER = logging.getLogger(__name__)
 

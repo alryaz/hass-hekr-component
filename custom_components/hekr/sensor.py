@@ -1,4 +1,12 @@
 """Support for Hekr sensors."""
+
+__all__ = [
+    'PLATFORM_SCHEMA',
+    'async_setup_platform',
+    'async_setup_entry',
+    'HekrSensor',
+]
+
 import logging
 from typing import Optional
 
