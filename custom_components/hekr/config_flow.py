@@ -99,8 +99,6 @@ class HekrFlowHandler(config_entries.ConfigFlow):
     async def async_step_device(self, user_input=None):
         self._current_type = CONF_DEVICE
 
-        print(USER_INPUT_DEVICE_SCHEMA, type(USER_INPUT_DEVICE_SCHEMA))
-
         if user_input is None:
             return self.async_show_form(step_id="device", data_schema=USER_INPUT_DEVICE_SCHEMA)
 
