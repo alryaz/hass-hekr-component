@@ -6,8 +6,8 @@ from homeassistant.components.switch import PLATFORM_SCHEMA, SwitchDevice, DOMAI
     ATTR_CURRENT_POWER_W, ATTR_TODAY_ENERGY_KWH
 from homeassistant.const import STATE_ON, STATE_OFF
 
+from .base_platform import HekrEntity, create_platform_basics
 from .const import PROTOCOL_CMD_TURN_ON, PROTOCOL_CMD_TURN_OFF
-from .sensor import HekrEntity, create_platform_basics
 
 _LOGGER = logging.getLogger(__name__)
 
