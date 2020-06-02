@@ -8,7 +8,7 @@
         "switch"
     ],
     "country": false,
-    "homeassistant": "0.96.0",
+    "homeassistant": "0.109.0",
     "persistent_directory": false,
     "iot_class": "Local Polling"
 }

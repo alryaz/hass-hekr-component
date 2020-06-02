@@ -1,0 +1,45 @@
+{
+    "config": {
+        "title": "Hekr Apparatuur",
+        "step": {
+            "user": {},
+            "account": {},
+            "device": {
+                "title": "Device over LAN netwerk",
+                "description": "Configureer apparaat gegevens.",
+                "data": {
+                    "name": "Naam (laat veld leeg voor autogeneratie)",
+                    "device_id": "Device ID",
+                    "control_key": "Control sleutel",
+                    "host": "Host",
+                    "protocol": "Protocol",
+                    "port": "Poort (leeg laten voor standaardpoort)",
+                    "scan_interval": "Polling-interval (in seconden)"
+                }
+            },
+            "additional_sensors": {
+                "title": "Sensors | {protocol_name} Protocol",
+                "description": "Kies welke sensoren bij het apparaat moet worden weergegeven.\nBevestig de huidige instellingen voor de standaardweergave.",
+                "data": {
+                    "power_meter_general": "Algemene informatie",
+                    "power_meter_detailed": "Gedetailleerde informatie",
+                    "power_meter_status": "Status",
+                    "power_meter_total_consumption": "Totale Consumptie",
+                    "power_meter_current_consumption": "Huidige Consumptie",
+                    "power_meter_voltage": "Voltage",
+                    "power_meter_current": "Amperage",
+                    "power_meter_power_factor": "Power Factor",
+                    "power_meter_active_power": "Active Power",
+                    "power_meter_reactive_power": "Reactive Power"
+                }
+            },
+            "additional_switches": {
+                "title": "Schakelaars | {protocol_name} Protocol",
+                "description": "Kies welke schakelaars bij het apparaat moet worden weergegeven.\nBevestig de huidige instellingen voor de standaardweergave.",
+                "data": {
+                    "power_meter_main_power": "Hoofdschakelaar (interne relais)"
+                }
+            }
+        }
+    }
+}

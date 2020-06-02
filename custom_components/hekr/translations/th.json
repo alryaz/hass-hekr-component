@@ -1,0 +1,45 @@
+{
+    "config": {
+        "title": "Hekr Devices",
+        "step": {
+            "user": {},
+            "account": {},
+            "device": {
+                "title": "อุปกรณ์ผ่าน LAN",
+                "description": "กำหนดค่าอุปกรณ์ที่สามารถเข้าถึงได้โดยตรง",
+                "data": {
+                    "name": "ชื่อ (ปล่อยว่างให้สร้างอัตโนมัติ)",
+                    "device_id": "อุปกรณ์ ID",
+                    "control_key": "รหัสการควบคุม",
+                    "host": "Host",
+                    "protocol": "Protocol",
+                    "port": "Port - พอร์ต (ปล่อยว่างไว้สำหรับค่าเริ่มต้นของโปรโตคอล)",
+                    "scan_interval": "ช่วงเวลาการสำรวจ (วินาที)"
+                }
+            },
+            "additional_sensors": {
+                "title": "เซ็นเซอร์ | {protocol_name} Protocol",
+                "description": "เลือกเซ็นเซอร์ที่จะแสดงด้วยอุปกรณ์\n ยืนยันการตั้งค่าปัจจุบันสำหรับโหมดเริ่มต้นของการทำงาน",
+                "data": {
+                    "power_meter_general": "ข้อมูลทั่วไป",
+                    "power_meter_detailed": "ข้อมูลโดยละเอียด",
+                    "power_meter_status": "Status",
+                    "power_meter_total_consumption": "ทั้งหมด หน่วยกำลังไฟฟ้า",
+                    "power_meter_current_consumption": "ปัจจุบัน หน่วยกำลังไฟฟ้า",
+                    "power_meter_voltage": "โวลต์",
+                    "power_meter_current": "แอมป์",
+                    "power_meter_power_factor": "Power Factor",
+                    "power_meter_active_power": "กำลังไฟฟ้าแอกทีฟ",
+                    "power_meter_reactive_power": "กำลังไฟฟ้ารีแอกทีฟ"
+                }
+            },
+            "additional_switches": {
+                "title": "สวิตช์  | {protocol_name} Protocol",
+                "description": "เลือกสวิตช์ที่จะแสดงด้วยอุปกรณ์\nยืนยันการตั้งค่าปัจจุบันสำหรับโหมดเริ่มต้นของการทำงาน",
+                "data": {
+                    "power_meter_main_power": "พลังงานหลัก"
+                }
+            }
+        }
+    }
+}

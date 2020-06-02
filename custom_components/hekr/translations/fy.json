@@ -1,0 +1,45 @@
+{
+    "config": {
+        "title": "Hekr Apparatuur",
+        "step": {
+            "user": {},
+            "account": {},
+            "device": {
+                "title": "Apparaat fia LAN-netwurk",
+                "description": "Apparaatgegevens ynstelle.",
+                "data": {
+                    "name": "Namme (leech litte om automatysk te generearjen",
+                    "device_id": "Apparaat-ID",
+                    "control_key": "Apparaat Control Key",
+                    "host": "Host",
+                    "protocol": "Protocol",
+                    "port": "Poart (leech litte foar standertpoarte)",
+                    "scan_interval": "Polling-ynterval (yn seconden)"
+                }
+            },
+            "additional_sensors": {
+                "title": "Sensors | {protocol_name} Protocol",
+                "description": "Sensoren dat jo wolle werjaan mei it apparaat.\nBefêstigje de hjoeddeistige standert werjefte ynstellingen.",
+                "data": {
+                    "power_meter_general": "Algemiene ynformaasje",
+                    "power_meter_detailed": "Gedetailleerde ynformaasje",
+                    "power_meter_status": "Status",
+                    "power_meter_total_consumption": "Totale konsumpsje",
+                    "power_meter_current_consumption": "Aktuele konsumpsje",
+                    "power_meter_voltage": "Voltage",
+                    "power_meter_current": "Amperage",
+                    "power_meter_power_factor": "Power Factor",
+                    "power_meter_active_power": "Active krêft",
+                    "power_meter_reactive_power": "Reaktive krêft"
+                }
+            },
+            "additional_switches": {
+                "title": "Schakelaars | {protocol_name} Protocol",
+                "description": "Hokker skeakels mei it apparaat moatte wurde werjûn.\nBefêstigje de hjoeddeistige standert werjefte ynstellingen.",
+                "data": {
+                    "power_meter_main_power": "Haadwiksel (ynterne relais)"
+                }
+            }
+        }
+    }
+}
