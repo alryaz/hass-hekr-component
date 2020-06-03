@@ -21,6 +21,7 @@
                 "title": "Сенсоры | Протокол {protocol_name}",
                 "description": "Choose what sensors should be shown with the device.\nConfirm current settings for default mode of operation.",
                 "data": {
+                    "power_meter": "Power Meter",
                     "power_meter_general": "Основная информация",
                     "power_meter_detailed": "Детальная информация",
                     "power_meter_status": "Статус",

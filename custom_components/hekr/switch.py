@@ -10,9 +10,14 @@ __all__ = [
 import logging
 from typing import Any, Optional
 
-from homeassistant.components.switch import PLATFORM_SCHEMA, SwitchDevice, DOMAIN as PLATFORM_DOMAIN, \
+from homeassistant.components.switch import PLATFORM_SCHEMA, DOMAIN as PLATFORM_DOMAIN, \
     ATTR_CURRENT_POWER_W, ATTR_TODAY_ENERGY_KWH
 from homeassistant.const import STATE_ON, STATE_OFF
+
+try:
+    from homeassistant.components.switch import SwitchEntity
+except ImportError:
+    from homeassistant.component.switch import SwitchDevice as SwitchEntity
 
 from .base_platform import HekrEntity, create_platform_basics
 from .const import PROTOCOL_CMD_TURN_ON, PROTOCOL_CMD_TURN_OFF
@@ -20,7 +25,7 @@ from .const import PROTOCOL_CMD_TURN_ON, PROTOCOL_CMD_TURN_OFF
 _LOGGER = logging.getLogger(__name__)
 
 
-class HekrSwitch(HekrEntity, SwitchDevice):
+class HekrSwitch(HekrEntity, SwitchEntity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._current_power_w = None

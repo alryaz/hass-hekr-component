@@ -137,6 +137,10 @@ class HekrFlowHandler(config_entries.ConfigFlow):
 
         return await self._get_next_additional_step()
 
+    # Account setup
+    async def async_step_account(self, user_input=None):
+        return self.async_abort(reason="this_is_a_stub")
+
     # Finalize entry creation
     async def _create_entry(self, config: ConfigType):
         config[CONF_NAME] = config.get(CONF_NAME, config.get(CONF_DEVICE_ID))
