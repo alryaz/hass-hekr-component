@@ -7,6 +7,17 @@
 This is **only** intended for development!  
 Please, report all issues to the [project's GitHub issues](https://github.com/alryaz/hass-hekr-component/issues).
 
+{%- elif version_installed.replace("v", "").replace(".","") | int < 20  %}
+
+### !!! BREAKING CHANGES IN >=0.2.0 !!!
+- Platform setups are no longer supported. Unfortunately, this is a trade-off for supporting accounts.
+  When you update to the latest version, a persistent notification will appear containing necessary
+  YAML configuration that you can add to your configuration.yaml file.
+- Config entry management mechanism vastly overhauled. While this should not influence
+  existing setups, it is advised to keep a backup of `core.config_entries` on update.
+- From now on, entries created within interface **will override** YAML configuration. This is done
+  to facilitate capability of removing YAML entry live and replacing it with different config.
+
 {%- elif not installed %}
 
 ## Screenshots

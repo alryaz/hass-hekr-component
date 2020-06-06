@@ -31,7 +31,7 @@ def power_meter_attribute_filter(attributes: dict) -> dict:
         attributes = {
             attribute: value
             for attribute, value in attributes.items()
-            if not (attribute[-2:-1] == '_' and attribute[-1:].isnumeric())
+            if not (attribute[-2:] == '_' and attribute[-1:].isnumeric())
                or int(attribute[-1:]) <= attributes['phase_count']
         }
 
@@ -83,7 +83,6 @@ POWER_METER = {
     PROTOCOL_MODEL: "DDS238-4 W",
     PROTOCOL_MANUFACTURER: "HIKING (TOMZN)",
     PROTOCOL_PORT: 10000,
-    PROTOCOL_DETECTION: lambda d_a: d_a['productName']['en_US'] == 'Smart Meter',
     PROTOCOL_DEFINITION: PROTOCOL_POWER_METER,
     PROTOCOL_FILTER: power_meter_attribute_filter,
     PROTOCOL_SENSORS: {

@@ -131,3 +131,9 @@ dmypy.json
 
 # IntelliJ Project Configuration
 /.idea
+
+# VSCode Project Configuration
+.vscode
+
+# Dev version of Hekr API
+/custom_components/hekr/hekrapi

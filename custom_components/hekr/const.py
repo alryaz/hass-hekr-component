@@ -11,7 +11,6 @@ DOMAIN = "hekr"
 
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=15)
 DEFAULT_NAME_DEVICE = "Hekr {protocol_name} {device_id}"
-DEFAULT_NAME_ACCOUNT = "Hekr Account: {username} ({id})"
 DEFAULT_SENSOR_ICON = "mdi:flash"
 DEFAULT_SWITCH_ICON = "mdi:switch"
 DEFAULT_QUERY_COMMAND = "queryDev"
@@ -39,6 +38,8 @@ CONF_ACCOUNTS = "accounts"
 CONF_DEVICE = "device"
 CONF_DEVICES = "devices"
 CONF_USE_MODEL_FROM_PROTOCOL = "use_model_from_protocol"
+CONF_DUMP_DEVICE_CREDENTIALS = "dump_device_credentials"
+CONF_TOKEN_UPDATE_INTERVAL = "token_update_interval"
 
 PROTOCOL_NAME = "name"
 PROTOCOL_MODEL = "model"

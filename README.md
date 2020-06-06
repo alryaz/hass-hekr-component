@@ -12,6 +12,16 @@ Things are subject to change drastically until at least two to three different H
 added to the integration as well as the parent python module. Please, read release notes carefully before installing
 or upgrading. __I am not responsible for damaging your devices in any way!__
 
+
+## !!! BREAKING CHANGES IN >=0.2.0 !!!
+- Platform setups are no longer supported. Unfortunately, this is a trade-off for supporting accounts.
+  When you update to the latest version, a persistent notification will appear containing necessary
+  YAML configuration that you can add to your configuration.yaml file.
+- Config entry management mechanism vastly overhauled. While this should not influence
+  existing setups, it is advised to keep a backup of `core.config_entries` on update.
+- From now on, entries created within interface **will override** YAML configuration. This is done
+  to facilitate capability of removing YAML entry live and replacing it with different config.
+
 ## Contribution
 
 If you found yourself using Wisen application with any of your Smart Home devices, contact me via
@@ -26,17 +36,6 @@ Check original repository with HekrAPI bindings: [hekrapi-python: Hekr protocol 
 _(more screenshots available at: [images/power_meter](images/power_meter))_
 
 ### Example configuration
-
-#### Configuration via platform
-```yaml
-sensor:
-- platform: hekr
-  host: home-power-meter.lan
-  device_id: ESP_2M_AABBCCDDEEFF
-  control_key: 202cb962ac59075b964b07152d234b70
-  protocol: power_meter
-```
-#### Configuration via component
 ```yaml
 hekr:
   devices:
@@ -72,40 +71,47 @@ Recent release added support for switches, but so far there is only one supporte
 
 #### Custom sensors, polling interval and name
 ```yaml
-sensor:
-- platform: hekr
-  host: home-power-meter.lan
-  device_id: ESP_2M_AABBCCDDEEFF
-  control_key: 202cb962ac59075b964b07152d234b70
-  scan_interval:
-    seconds: 15
-  protocol: power_meter
-  sensors:
-    - general
-    - detailed
-    - status
-    - current_consumption
-    - total_consumption
-    - voltage
-    - current
-    - power_factor
-    - active_power
-    - reactive_power
+hekr:
+  devices:
+    - device_id: ESP_2M_AABBCCDDEEFF
+      host: home-power-meter.lan
+      control_key: 202cb962ac59075b964b07152d234b70
+      scan_interval:
+        seconds: 15
+      protocol: power_meter
+      sensors:
+        - general
+        - detailed
+        - status
+        - current_consumption
+        - total_consumption
+        - voltage
+        - current
+        - power_factor
+        - active_power
+        - reactive_power
 ```
 
-#### Switches
+#### Switches, do not add any sensors
 ```yaml
-switch:
-- platform: hekr
-  host: home-power-meter.lan
-  device_id: ESP_2M_AABBCCDDEEFF
-  control_key: 202cb962ac59075b964b07152d234b70
-  protocol: power_meter
-  switches: main_power
+hekr:
+  devices:
+    - device_id: ESP_2M_AABBCCDDEEFF
+      host: home-power-meter.lan
+      control_key: 202cb962ac59075b964b07152d234b70
+      scan_interval:
+        seconds: 15
+      protocol: power_meter
+      sensors: false
+      switches:
+        - main_power
 ```
 
-## Fetching `device_id` and `control_key`
-This tutorial is a barebones method to retrieve necessary settings for device to operate over local network.
+## Fetching `device_id` and `control_key` for local setup
+**The easiest way to accomplish this is to begin an integration flow with `account` setup type. Tick the box
+`Create notification with device info`, and a persistent notification will appear containing compatible YAML config.**
+
+The following tutorial is left for educational purposes / explanation on how protocol decoding was done.
 
 ##### Pre-requisites:
 - An android device with working Wi-Fi

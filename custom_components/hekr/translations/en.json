@@ -2,8 +2,22 @@
     "config": {
         "title": "Hekr Devices",
         "step": {
-            "user": {},
-            "account": {},
+            "user": {
+                "title": "Hekr Setup",
+                "description": "There are two ways to connect to Hekr platform: cloud and local. To connect using cloud service choose `account` option. To connect via local network choose `device` option.",
+                "data": {
+                    "type": "Setup type"
+                }
+            },
+            "account": {
+                "title": "Account",
+                "description": "Enter the credentials you use to log into Hekr / Wisen application.",
+                "data": {
+                    "username": "Username",
+                    "password": "Password",
+                    "dump_device_credentials": "Create notification with device info"
+                }
+            },
             "device": {
                 "title": "Device over LAN",
                 "description": "Configure device accessible directly.",

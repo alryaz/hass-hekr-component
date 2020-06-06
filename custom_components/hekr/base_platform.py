@@ -16,18 +16,18 @@ from homeassistant.components.binary_sensor.device_condition import DEVICE_CLASS
 from homeassistant.const import (
     STATE_UNKNOWN, STATE_OK, CONF_PROTOCOL,
     CONF_NAME, ATTR_NAME, ATTR_ICON, ATTR_STATE, ATTR_UNIT_OF_MEASUREMENT, CONF_SCAN_INTERVAL,
-    ATTR_DEVICE_CLASS, CONF_HOST, CONF_DEVICE_ID)
+    ATTR_DEVICE_CLASS, CONF_DEVICE_ID, CONF_USERNAME, CONF_PLATFORM)
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.typing import HomeAssistantType, ConfigType
 
-from . import HekrData, _LOGGER
+from . import _LOGGER
 from .const import DOMAIN, PROTOCOL_DEFAULT, PROTOCOL_CMD_UPDATE, ATTR_MONITORED, \
-    DEFAULT_SCAN_INTERVAL, PROTOCOL_CMD_RECEIVE, CONF_DEVICE, CONF_ACCOUNT, CONF_DOMAINS, DEFAULT_NAME_DEVICE, \
-    PROTOCOL_NAME
-from .schemas import BASE_PLATFORM_SCHEMA, exclusive_auth_methods, test_for_list_correspondence
+    DEFAULT_SCAN_INTERVAL, PROTOCOL_CMD_RECEIVE, CONF_DEVICE, CONF_ACCOUNT, CONF_DOMAINS
+from .schemas import BASE_PLATFORM_SCHEMA, test_for_list_correspondence
 from .supported_protocols import SUPPORTED_PROTOCOLS
 
 if TYPE_CHECKING:
+    from .hekr_data import HekrData
     from hekrapi import MessageID, CommandData, logging
 
 
@@ -35,7 +35,7 @@ class HekrEntity(Entity):
     def __init__(self, device_id: str, ent_type: str, name: str, config: Dict, update_interval: timedelta,
                  init_enable: bool):
         super().__init__()
-        _LOGGER.debug('Creating %s entity for device with ID "%s"' % (self.__class__.__name__, device_id))
+        _LOGGER.debug('Creating %s[%s] entity for device with ID "%s"' % (self.__class__.__name__, ent_type, device_id))
         self._device_id = device_id
         self._ent_type = ent_type
         self._name = name
@@ -50,23 +50,26 @@ class HekrEntity(Entity):
     def __hash__(self):
         return hash(self.unique_id)
 
+    @property
+    def _data(self) -> 'HekrData':
+        return self.hass.data[DOMAIN]
+
     async def async_added_to_hass(self) -> None:
         _LOGGER.debug('Entity %s added to HASS! Setting up callbacks.' % self)
-        hekr_data = HekrData.get_instance(self.hass)
-        device_entities = hekr_data.device_entities.setdefault(self._device_id, [])
+        device_entities = self._data.device_entities.setdefault(self._device_id, [])
         device_entities.append(self)
-        hekr_data.refresh_connections()
+        self._data.refresh_connections()
 
     async def async_will_remove_from_hass(self) -> None:
         _LOGGER.debug('Entity %s removed from HomeAssistant' % self)
-        hekr_data = HekrData.get_instance(self.hass)
-        device_entities = hekr_data.device_entities.get(self._device_id)
+        device_entities = self._data.device_entities.get(self._device_id)
         if device_entities:
             device_entities.remove(self)
-            hekr_data.refresh_connections()
+            self._data.refresh_connections()
 
     @classmethod
-    def create_entities(cls: Type['HekrEntity'], device_id: str, name: str, types: Union[bool, str, List[str]],
+    def create_entities(cls: Type['HekrEntity'], device_id: str, name: str,
+                        types: Optional[Union[bool, str, List[str]]],
                         configs: Dict[str, dict], update_interval: timedelta):
         if types is True:
             init_enable = dict.fromkeys(configs.keys(), True)
@@ -75,7 +78,11 @@ class HekrEntity(Entity):
             if types is not False:
                 if not types:
                     # empty types `str`/`list` or `None` is provided, therefore everything default should be added
-                    enabled_types = [ent_type for ent_type, config in configs.items() if config.get(PROTOCOL_DEFAULT) is True]
+                    enabled_types = [
+                        ent_type
+                        for ent_type, config in configs.items()
+                        if config.get(PROTOCOL_DEFAULT) is True
+                    ]
                 else:
                     if isinstance(types, str):
                         # convert single type definition to list
@@ -157,9 +164,8 @@ class HekrEntity(Entity):
             if isinstance(command, tuple):
                 command, arguments = command
 
-            hekr_data = HekrData.get_instance(self.hass)
             return asyncio.run_coroutine_threadsafe(
-                hekr_data.devices[self._device_id].command(command, arguments),
+                self._data.devices[self._device_id].command(command, arguments),
                 self.hass.loop
             ).result()
         else:
@@ -223,11 +229,12 @@ class HekrEntity(Entity):
 
     @property
     def device_info(self) -> Optional[Dict[str, Any]]:
-        return HekrData.get_instance(self.hass).get_device_info_dict(self._device_id)
+        return self._data.get_device_info_dict(self._device_id)
 
     @property
     def entity_registry_enabled_default(self) -> bool:
         return self._init_enable
+
 
 async def _setup_entity(logger: 'logging.Logger', hass: HomeAssistantType, async_add_entities, config: ConfigType,
                         protocol_key: str, config_key: str, entity_domain: str,
@@ -243,18 +250,18 @@ async def _setup_entity(logger: 'logging.Logger', hass: HomeAssistantType, async
         return False
 
     try:
-        hekr_data = HekrData.get_instance(hass)
-        device = await hekr_data.get_create_connected_device(config)
+        device_id = config[CONF_DEVICE_ID]
+
+        hekr_data: 'HekrData' = hass.data[DOMAIN]
+        device = hekr_data.devices[device_id]
 
         update_interval = config.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         if isinstance(update_interval, int):
             update_interval = timedelta(seconds=update_interval)
 
-        _LOGGER.debug('TYPES: %s, %s, %s, %s' % (entity_domain, config_key, protocol_key, config))
-
         entities = entity_factory.create_entities(
-            device_id=device.device_id,
-            name=config.get(CONF_NAME),
+            device_id=device_id,
+            name=config[CONF_NAME],
             types=config.get(config_key),
             configs=protocol[protocol_key],
             update_interval=update_interval,
@@ -263,6 +270,7 @@ async def _setup_entity(logger: 'logging.Logger', hass: HomeAssistantType, async
         if entities is None:
             logger.warning('No entities added for device with ID "%s"' % device.device_id)
             return False
+
         _LOGGER.debug('Prepared entities: %s' % ', '.join([entity.name for entity in entities]))
 
         async_add_entities(entities)
@@ -285,10 +293,10 @@ def create_platform_basics(logger: 'logging.Logger', entity_domain: str, entity_
 
     config_key = None
     protocol_key = None
-    for conf_key, (ent_domain, proto_key) in CONF_DOMAINS.items():
+    for conf_key, (ent_domain, protocol_key) in CONF_DOMAINS.items():
         if ent_domain == entity_domain:
             config_key = conf_key
-            protocol_key = proto_key
+            protocol_key = protocol_key
             break
 
     if config_key is None:
@@ -297,45 +305,97 @@ def create_platform_basics(logger: 'logging.Logger', entity_domain: str, entity_
     async def _async_setup_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry, async_add_devices):
         conf = config_entry.data
         config_type = CONF_DEVICE if CONF_DEVICE in conf else CONF_ACCOUNT
+        hekr_data: 'HekrData' = hass.data[DOMAIN]
         item_config = conf[config_type]
 
         if config_type == CONF_DEVICE:
+            device_id = item_config[CONF_DEVICE_ID]
+            device_cfg = hekr_data.devices_config_entries[device_id]
+            _LOGGER.debug('Adding local device %s with config: %s' % (device_id, device_cfg))
             return await _setup_entity(
                 logger=logger,
                 hass=hass,
                 async_add_entities=async_add_devices,
-                config=item_config,
+                config=device_cfg,
                 config_key=config_key,
                 protocol_key=protocol_key,
                 entity_domain=entity_domain,
                 entity_factory=entity_factory
             )
 
+        elif config_type == CONF_ACCOUNT:
+            account_id = item_config[CONF_USERNAME]
+
+            tasks = []
+            for device_id, device in hekr_data.get_account_devices(account_id).items():
+                device_cfg = hekr_data.devices_config_entries[device_id]
+                _LOGGER.debug('Adding device %s for account %s with config: %s' % (device_id, account_id, device_cfg))
+                tasks.append(
+                    _setup_entity(
+                        logger=logger,
+                        hass=hass,
+                        async_add_entities=async_add_devices,
+                        config=device_cfg,
+                        config_key=config_key,
+                        protocol_key=protocol_key,
+                        entity_domain=entity_domain,
+                        entity_factory=entity_factory
+                    )
+                )
+
+            return all(await asyncio.wait(tasks))
+
         return False
 
-    async def _async_setup_platform(hass: HomeAssistantType, config: ConfigType, async_add_entities, *_):
-        if config.get(CONF_NAME) is None:
-            protocol = SUPPORTED_PROTOCOLS[config[CONF_PROTOCOL]]
-            config[CONF_NAME] = DEFAULT_NAME_DEVICE.format(
-                protocol_name=protocol.get(PROTOCOL_NAME),
-                host=config.get(CONF_HOST),
-                device_id=config.get(CONF_DEVICE_ID),
-            )
+    async def _async_setup_platform(hass: HomeAssistantType, config: ConfigType, *_, **__):
+        _LOGGER.error('Platform setup is deprecated! Please, convert your configuration to use component instead of '
+                      'platform. A persistent notification will be created with config for your particular device.')
 
-        return await _setup_entity(
-            logger=logger,
-            hass=hass,
-            async_add_entities=async_add_entities,
-            config=config,
-            config_key=config_key,
-            protocol_key=protocol_key,
-            entity_domain=entity_domain,
-            entity_factory=entity_factory
+        del config[CONF_PLATFORM]
+
+        from homeassistant.components.persistent_notification import DOMAIN, SERVICE_CREATE, ATTR_TITLE, ATTR_MESSAGE
+
+        def timedelta_str(td: timedelta, offset: str) -> str:
+            hours = td.seconds // 3600
+            minutes = (td.seconds % 3600) // 60
+            seconds = td.seconds % 60
+
+            return offset + ('\n'+offset).join([
+                "%s: %s" % replace
+                for replace in {
+                    "seconds": seconds,
+                    "minutes": minutes,
+                    "hours": hours,
+                    "days": td.days
+                }.items()
+                if replace[1] != 0
+            ])
+
+        conversion_content = '```\nhekr:\n  devices:\n    - '
+        default_values = {
+            k: k.default()
+            for k in BASE_PLATFORM_SCHEMA.keys()
+            if not isinstance(k.default, vol.schema_builder.Undefined)
+        }
+        conversion_content += '\n      '.join([
+            '%s: %s' % (k, '\n' + timedelta_str(v, ' '*8) if isinstance(v, timedelta) else v)
+            for k, v in config.items()
+            if default_values.get(k) != v
+        ])
+        conversion_content += '\n```'
+
+        hass.async_create_task(
+            hass.services.async_call(DOMAIN, SERVICE_CREATE, {
+                ATTR_TITLE: 'Hekr device %s' % config[CONF_DEVICE_ID],
+                ATTR_MESSAGE: 'Setting up Hekr devices using platforms is no longer supported. Consider switching to '
+                              'an integration setup via interface or YAML. To port your platform configuration to the '
+                              'new format, an entry has been provided for you to copy:\n' + conversion_content
+            })
         )
+        return False
 
     _PLATFORM_SCHEMA = vol.All(
         base_schema.extend(BASE_PLATFORM_SCHEMA),
-        exclusive_auth_methods,
         test_for_list_correspondence(config_key, protocol_key)
     )
 
