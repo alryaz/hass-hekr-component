@@ -24,7 +24,7 @@ from custom_components.hekr.supported_protocols import SUPPORTED_PROTOCOLS
 from custom_components.hekr.const import DOMAIN, DEFAULT_USE_MODEL_FROM_PROTOCOL, PROTOCOL_FILTER, CONF_DOMAINS, \
     CONF_APPLICATION_ID, DEFAULT_APPLICATION_ID, CONF_CONTROL_KEY, PROTOCOL_DEFINITION, PROTOCOL_PORT, \
     CONF_ACCOUNT, DEFAULT_SLEEP_INTERVAL, DEFAULT_SCAN_INTERVAL, PROTOCOL_MODEL, \
-    PROTOCOL_MANUFACTURER, PROTOCOL_NAME, CONF_DEVICE, CONF_TOKEN_UPDATE_INTERVAL
+    PROTOCOL_MANUFACTURER, PROTOCOL_NAME, CONF_DEVICE, CONF_TOKEN_UPDATE_INTERVAL, DEFAULT_NAME_DEVICE
 
 if TYPE_CHECKING:
     from hekrapi.command import Command
@@ -262,12 +262,19 @@ class HekrData:
             application_id=config.get(CONF_APPLICATION_ID, DEFAULT_APPLICATION_ID),
         )
 
+        device_id = config.get(CONF_DEVICE_ID)
         device = Device(
-            device_id=config.get(CONF_DEVICE_ID),
+            device_id=device_id,
             control_key=config.get(CONF_CONTROL_KEY),
             protocol=protocol[PROTOCOL_DEFINITION]
         )
         device.connector = connector
+
+        if CONF_NAME not in config:
+            config[CONF_NAME] = DEFAULT_NAME_DEVICE.format(
+                protocol_name=protocol.get(PROTOCOL_NAME, protocol_id),
+                device_id=device_id
+            )
 
         self.add_device(device, config)
 
