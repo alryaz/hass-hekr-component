@@ -5,6 +5,8 @@
 >[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
 >[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 >[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/alryaz/hass-hekr-component/graphs/commit-activity)
+>[![Donate Yandex](https://img.shields.io/badge/Donate-Yandex-red.svg)](https://money.yandex.ru/to/410012369233217)
+>[![Donate PayPal](https://img.shields.io/badge/Donate-Paypal-blueviolet.svg)](https://www.paypal.me/alryaz)
 
 ## ❗❗❗ WARNING ❗❗❗
 **THIS PROJECT IS HIGHLY _WORK-IN-PROGRESS_!!!**
@@ -31,7 +33,7 @@ the milestone is set for a release-candidate version.
 Check original repository with HekrAPI bindings: [hekrapi-python: Hekr protocol bindings for Python](https://github.com/alryaz/hekrapi-python)
 
 ## Power meter protocol: `power_meter`
-![](images/power_meter/badges.png)
+![Loaded badges for power meter protocol](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_meter/badges.png)
 
 _(more screenshots available at: [images/power_meter](images/power_meter))_
 
@@ -52,8 +54,8 @@ hekr:
 In this state, the plugin will generate three sensors, all obtained via a single `queryDev` command.
 These sensors are:
 - `status` - **Status** (whether device reports any kind of errors)
-- `current_consumption` - **Current Consumption** (current power consumption in *W*)
-- `total_consumption` - **Total Consumption** (total energy consumption in *kW*).
+- `current_consumption` - **Current Consumption** (current power consumption in *W*, phase attributes in *kW*)
+- `total_consumption` - **Total Consumption** (total energy consumption in *kW/h*).
 
 Also the following sensors are available, but not enabled by default (as they increase the amount of requests required
 to poll the device, leading to infrequent, but possible timeouts):
@@ -66,10 +68,9 @@ to poll the device, leading to infrequent, but possible timeouts):
 - `reactive_power` - **Reactive Power**
 
 Recent release added support for switches, but so far there is only one supported:
-
 - `main_power` - **Main Power** (toggles relay power on and off) 
 
-#### Custom sensors, polling interval and name
+#### Custom sensors, set polling interval and name
 ```yaml
 hekr:
   devices:
@@ -92,7 +93,7 @@ hekr:
         - reactive_power
 ```
 
-#### Switches, do not add any sensors
+#### Enable `main_power` switch, do not add any sensors
 ```yaml
 hekr:
   devices:

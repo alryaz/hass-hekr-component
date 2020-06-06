@@ -1,15 +1,19 @@
 # HomeAssistant Hekr Devices Integration
-[GitHub Page](https://github.com/alryaz/hass-hekr-component)
+[![GitHub Page](https://img.shields.io/badge/GitHub-alryaz%2Fhass--hekr--component-blue)](https://github.com/alryaz/hass-hekr-component)
+[![Donate Yandex](https://img.shields.io/badge/Donate-Yandex-red.svg)](https://money.yandex.ru/to/410012369233217)
+[![Donate PayPal](https://img.shields.io/badge/Donate-Paypal-blueviolet.svg)](https://www.paypal.me/alryaz)
 
-{%- if version_installed == "development" %}
+{% if installed %}
 
-#### You are running a development version!
-This is **only** intended for development!  
-Please, report all issues to the [project's GitHub issues](https://github.com/alryaz/hass-hekr-component/issues).
+{% if version_installed == "master" %}
 
-{%- elif version_installed.replace("v", "").replace(".","") | int < 20  %}
+#### Breaking changes: master
+This branch may be unstable, as it contains commits not tested beforehand.  
+Please, do not use this branch in production environments.
 
-### !!! BREAKING CHANGES IN >=0.2.0 !!!
+{% elif version_installed.replace("v", "").replace(".","") | int < 20  %}
+
+#### Breaking changes: >= 0.2.0
 - Platform setups are no longer supported. Unfortunately, this is a trade-off for supporting accounts.
   When you update to the latest version, a persistent notification will appear containing necessary
   YAML configuration that you can add to your configuration.yaml file.
@@ -17,40 +21,34 @@ Please, report all issues to the [project's GitHub issues](https://github.com/al
   existing setups, it is advised to keep a backup of `core.config_entries` on update.
 - From now on, entries created within interface **will override** YAML configuration. This is done
   to facilitate capability of removing YAML entry live and replacing it with different config.
+  
+{% else %}
 
-{%- elif not installed %}
+#### Mainline version :smile:
+
+{% endif %}
+
+Please, report all issues to the [project's GitHub issues](https://github.com/alryaz/hass-hekr-component/issues).
+
+{% else %}
 
 ## Screenshots
 #### Device with `power_meter` protocol
-![](images/power_meter/badges.png)
+![Loaded badges for power meter protocol](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_meter/badges.png)
 
-{% endif -%}
+{% endif %}
+
 
 ## Configuration
-### ...as platforms:
+### _Option A:_ Using integrations dialog:
+Go to _HomeAssistant_'s `Settings` / `Integrations` menu and add (`+` button) the `Hekr` integration.  
+From there you can create both device and account entries.
+ 
+### _Option B:_ Using `configuration.yaml`
 Modify the following example accordingly and put the configuration into your `configuration.yaml` file.  
-__Caution:__ when setting up multiple platforms, make sure the base configs are identical.
-```yaml
-sensor: // `sensor` platform
-- platform: hekr
-  host: [DEVICE HOSTNAME/IP ADDRESS]
-  device_id: [DEVICE ID]
-  control_key: [DEVICE CONTROL KEY]
-  protocol: [PROTOCOL NAME]
-  sensors: [SENSOR SELECTION (OPTIONAL)]
-  scan_interval: [POLLING INTERVAL, DEFAULT = 15 SECONDS (OPTIONAL)]
+, as well as multiple accounts: `[hekr->accounts]`.
 
-switch: // `switch` platform
-- platform: hekr
-  host: [DEVICE HOSTNAME/IP ADDRESS]
-  device_id: [DEVICE ID]
-  control_key: [DEVICE CONTROL KEY]
-  protocol: [PROTOCOL NAME]
-  switches: [SWITCH SELECTION (OPTIONAL)]
-  scan_interval: [POLLING INTERVAL, DEFAULT = 15 SECONDS (OPTIONAL)]
-```
-### ...via component:
-Modify the following example accordingly and put the configuration into your `configuration.yaml` file.  
+#### Device configuration
 Multiple devices can be added under `[hekr->devices]`.
 ```yaml
 hekr:
@@ -63,8 +61,15 @@ hekr:
       switches: [SWITCH SELECTION (OPTIONAL)]
       scan_interval: [POLLING INTERVAL, DEFAULT = 15 SECONDS (OPTIONAL)]
 ```
-### ...using integrations dialog:
-Go to _HomeAssistant_'s `Settings / Integrations` menu and add (`+` button) the `Hekr Devices` integration.
+
+#### Account configuration
+Multiple accounts can be added under `[hekr->devices]`.
+```yaml
+hekr:
+  accounts:
+    - username: [USERNAME]
+      password: [PASSWORD]
+```
 
 ## Supported protocols
 ### _Smart Power Meter_ (`power_meter`)
