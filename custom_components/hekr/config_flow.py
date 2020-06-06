@@ -107,8 +107,6 @@ class HekrFlowHandler(config_entries.ConfigFlow):
 
             if conf_key not in self._current_config:
                 step_attr = 'async_step_' + self.prefix_dynamic_config + conf_key
-                _LOGGER.debug('next additional step: %s' % step_attr)
-                _LOGGER.debug('current_config: %s' % self._current_config)
                 return await getattr(self, step_attr)()
 
         return await self._create_entry(self._current_config, setup_type=CONF_DEVICE)

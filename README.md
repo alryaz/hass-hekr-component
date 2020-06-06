@@ -25,12 +25,16 @@ or upgrading. __I am not responsible for damaging your devices in any way!__
   to facilitate capability of removing YAML entry live and replacing it with different config.
 
 ## Contribution
-
 If you found yourself using Wisen application with any of your Smart Home devices, contact me via
 e-mail <alryaz@xavux.com>. The process of adding new devices is not yet completely formalized,
 the milestone is set for a release-candidate version.
 
 Check original repository with HekrAPI bindings: [hekrapi-python: Hekr protocol bindings for Python](https://github.com/alryaz/hekrapi-python)
+
+You can also help with translating this component. Fork this repository, make changes to preferred language files in
+`custom_components/hekr/translations`, remove the `_remove_me_after_making_translations_or_everything_will_be_replaced`
+translation key, and submit a pull request. Alternatively you can send a translation file directly through one of the
+communication channels listed at the end of this page.
 
 ## Power meter protocol: `power_meter`
 ![Loaded badges for power meter protocol](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_meter/badges.png)
@@ -155,17 +159,15 @@ The following tutorial is left for educational purposes / explanation on how pro
    }
    ```
 1. __Congratulations, you're ready!__ You can proceed by using any of the configuration methods described above to add
-   your device to HomeAssistant. 
+   your device to HomeAssistant.
+ 
 ## Author
 
-👤 **Alexander Ryyazanov (@alryaz)**
+👤 **Alexander Ryazanov (@alryaz)**
 
 * Github: [@alryaz](https://github.com/alryaz)
 * Telegram: [@alryaz](https://t.me/alryaz)
-
-## Show your support
+* E-Mail: [alryaz@xavux.com](mailto:alryaz@xavux.com?subject=Hekr%20Component)
 
 Give a ⭐ if this project helped you!
-
-
 

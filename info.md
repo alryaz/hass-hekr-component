@@ -2,7 +2,8 @@
 [![GitHub Page](https://img.shields.io/badge/GitHub-alryaz%2Fhass--hekr--component-blue)](https://github.com/alryaz/hass-hekr-component)
 [![Donate Yandex](https://img.shields.io/badge/Donate-Yandex-red.svg)](https://money.yandex.ru/to/410012369233217)
 [![Donate PayPal](https://img.shields.io/badge/Donate-Paypal-blueviolet.svg)](https://www.paypal.me/alryaz)
-{% set mainline_ver = 'v0.2.1' %}{% set mainline_num_ver = mainline_ver.replace("v", "").replace(".", "") | int %}{%- set features = {
+{% set mainline_ver = 'v0.2.2' %}{% set mainline_num_ver = mainline_ver.replace("v", "").replace(".", "") | int %}{%- set features = {
+    'v0.2.2': 'English placeholders for unsupported languages',
     'v0.2.0': 'Accounts support (devices accessible both via local and cloud endpoints)',
     'v0.1.6': 'Thai, Dutch, Farsi languages support',
     'v0.1.5': 'Automatic reconnection on socket close',

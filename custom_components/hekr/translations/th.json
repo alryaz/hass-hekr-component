@@ -1,45 +1,60 @@
 {
     "config": {
-        "title": "Hekr Devices",
         "step": {
-            "user": {},
-            "account": {},
-            "device": {
-                "title": "อุปกรณ์ผ่าน LAN",
-                "description": "กำหนดค่าอุปกรณ์ที่สามารถเข้าถึงได้โดยตรง",
+            "account": {
                 "data": {
-                    "name": "ชื่อ (ปล่อยว่างให้สร้างอัตโนมัติ)",
-                    "device_id": "อุปกรณ์ ID",
-                    "control_key": "รหัสการควบคุม",
-                    "host": "Host",
-                    "protocol": "Protocol",
-                    "port": "Port - พอร์ต (ปล่อยว่างไว้สำหรับค่าเริ่มต้นของโปรโตคอล)",
-                    "scan_interval": "ช่วงเวลาการสำรวจ (วินาที)"
-                }
+                    "dump_device_credentials": "Create notification with device info",
+                    "password": "Password",
+                    "username": "Username"
+                },
+                "description": "Enter the credentials you use to log into Hekr / Wisen application.",
+                "title": "Account"
             },
             "additional_sensors": {
-                "title": "เซ็นเซอร์ | {protocol_name} Protocol",
-                "description": "เลือกเซ็นเซอร์ที่จะแสดงด้วยอุปกรณ์\n ยืนยันการตั้งค่าปัจจุบันสำหรับโหมดเริ่มต้นของการทำงาน",
                 "data": {
-                    "power_meter_general": "ข้อมูลทั่วไป",
+                    "power_meter": "Power Meter",
+                    "power_meter_active_power": "กำลังไฟฟ้าแอกทีฟ",
+                    "power_meter_current": "แอมป์",
+                    "power_meter_current_consumption": "ปัจจุบัน หน่วยกำลังไฟฟ้า",
                     "power_meter_detailed": "ข้อมูลโดยละเอียด",
+                    "power_meter_general": "ข้อมูลทั่วไป",
+                    "power_meter_power_factor": "Power Factor",
+                    "power_meter_reactive_power": "กำลังไฟฟ้ารีแอกทีฟ",
                     "power_meter_status": "Status",
                     "power_meter_total_consumption": "ทั้งหมด หน่วยกำลังไฟฟ้า",
-                    "power_meter_current_consumption": "ปัจจุบัน หน่วยกำลังไฟฟ้า",
-                    "power_meter_voltage": "โวลต์",
-                    "power_meter_current": "แอมป์",
-                    "power_meter_power_factor": "Power Factor",
-                    "power_meter_active_power": "กำลังไฟฟ้าแอกทีฟ",
-                    "power_meter_reactive_power": "กำลังไฟฟ้ารีแอกทีฟ"
-                }
+                    "power_meter_voltage": "โวลต์"
+                },
+                "description": "เลือกเซ็นเซอร์ที่จะแสดงด้วยอุปกรณ์\n ยืนยันการตั้งค่าปัจจุบันสำหรับโหมดเริ่มต้นของการทำงาน",
+                "title": "เซ็นเซอร์ | {protocol_name} Protocol"
             },
             "additional_switches": {
-                "title": "สวิตช์  | {protocol_name} Protocol",
-                "description": "เลือกสวิตช์ที่จะแสดงด้วยอุปกรณ์\nยืนยันการตั้งค่าปัจจุบันสำหรับโหมดเริ่มต้นของการทำงาน",
                 "data": {
                     "power_meter_main_power": "พลังงานหลัก"
-                }
+                },
+                "description": "เลือกสวิตช์ที่จะแสดงด้วยอุปกรณ์\nยืนยันการตั้งค่าปัจจุบันสำหรับโหมดเริ่มต้นของการทำงาน",
+                "title": "สวิตช์  | {protocol_name} Protocol"
+            },
+            "device": {
+                "data": {
+                    "control_key": "รหัสการควบคุม",
+                    "device_id": "อุปกรณ์ ID",
+                    "host": "Host",
+                    "name": "ชื่อ (ปล่อยว่างให้สร้างอัตโนมัติ)",
+                    "port": "Port - พอร์ต (ปล่อยว่างไว้สำหรับค่าเริ่มต้นของโปรโตคอล)",
+                    "protocol": "Protocol",
+                    "scan_interval": "ช่วงเวลาการสำรวจ (วินาที)"
+                },
+                "description": "กำหนดค่าอุปกรณ์ที่สามารถเข้าถึงได้โดยตรง",
+                "title": "อุปกรณ์ผ่าน LAN"
+            },
+            "user": {
+                "data": {
+                    "type": "Setup type"
+                },
+                "description": "There are two ways to connect to Hekr platform: cloud and local. To connect using cloud service choose `account` option. To connect via local network choose `device` option.",
+                "title": "Hekr Setup"
             }
-        }
+        },
+        "title": "Hekr"
     }
 }

@@ -1,4 +1,5 @@
 {
+    "_remove_me_after_making_translations_or_everything_will_be_replaced": true,
     "config": {
         "step": {
             "account": {
@@ -14,38 +15,38 @@
                 "data": {
                     "power_meter": "Power Meter",
                     "power_meter_active_power": "Active Power",
-                    "power_meter_current": "Amperage",
-                    "power_meter_current_consumption": "Huidige Consumptie",
-                    "power_meter_detailed": "Gedetailleerde informatie",
-                    "power_meter_general": "Algemene informatie",
+                    "power_meter_current": "Current",
+                    "power_meter_current_consumption": "Current Consumption",
+                    "power_meter_detailed": "Detailed Information",
+                    "power_meter_general": "General Information",
                     "power_meter_power_factor": "Power Factor",
                     "power_meter_reactive_power": "Reactive Power",
                     "power_meter_status": "Status",
-                    "power_meter_total_consumption": "Totale Consumptie",
+                    "power_meter_total_consumption": "Total Consumption",
                     "power_meter_voltage": "Voltage"
                 },
-                "description": "Kies welke sensoren bij het apparaat moet worden weergegeven.\nBevestig de huidige instellingen voor de standaardweergave.",
+                "description": "Choose what sensors should be shown with the device.\nConfirm current settings for default mode of operation.",
                 "title": "Sensors | {protocol_name} Protocol"
             },
             "additional_switches": {
                 "data": {
-                    "power_meter_main_power": "Hoofdschakelaar (interne relais)"
+                    "power_meter_main_power": "Main Power"
                 },
-                "description": "Kies welke schakelaars bij het apparaat moet worden weergegeven.\nBevestig de huidige instellingen voor de standaardweergave.",
-                "title": "Schakelaars | {protocol_name} Protocol"
+                "description": "Choose what switches should be shown with the device.\nConfirm current settings for default mode of operation.",
+                "title": "Switches | {protocol_name} Protocol"
             },
             "device": {
                 "data": {
-                    "control_key": "Control sleutel",
+                    "control_key": "Control key",
                     "device_id": "Device ID",
                     "host": "Host",
-                    "name": "Naam (laat veld leeg voor autogeneratie)",
-                    "port": "Poort (leeg laten voor standaardpoort)",
+                    "name": "Name (leave empty to auto-generate)",
+                    "port": "Port (leave empty for protocol default)",
                     "protocol": "Protocol",
-                    "scan_interval": "Polling-interval (in seconden)"
+                    "scan_interval": "Polling interval (in seconds)"
                 },
-                "description": "Configureer apparaat gegevens.",
-                "title": "Device over LAN netwerk"
+                "description": "Configure device accessible directly.",
+                "title": "Device over LAN"
             },
             "user": {
                 "data": {
