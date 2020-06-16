@@ -15,7 +15,7 @@ from hekrapi.account import Account
 from homeassistant import config_entries
 from homeassistant.const import EVENT_HOMEASSISTANT_START, EVENT_HOMEASSISTANT_STOP, CONF_PROTOCOL, CONF_HOST, \
     CONF_DEVICE_ID, CONF_PORT, CONF_SCAN_INTERVAL, CONF_NAME, CONF_USERNAME, CONF_PASSWORD, \
-    CONF_CUSTOMIZE
+    CONF_CUSTOMIZE, CONF_TIMEOUT
 from homeassistant.helpers.event import async_track_time_interval, async_track_point_in_time
 from homeassistant.helpers.typing import HomeAssistantType, ConfigType
 from homeassistant.util.dt import now
@@ -24,7 +24,7 @@ from custom_components.hekr.supported_protocols import SUPPORTED_PROTOCOLS
 from custom_components.hekr.const import DOMAIN, DEFAULT_USE_MODEL_FROM_PROTOCOL, PROTOCOL_FILTER, CONF_DOMAINS, \
     CONF_APPLICATION_ID, DEFAULT_APPLICATION_ID, CONF_CONTROL_KEY, PROTOCOL_DEFINITION, PROTOCOL_PORT, \
     CONF_ACCOUNT, DEFAULT_SLEEP_INTERVAL, DEFAULT_SCAN_INTERVAL, PROTOCOL_MODEL, \
-    PROTOCOL_MANUFACTURER, PROTOCOL_NAME, CONF_DEVICE, CONF_TOKEN_UPDATE_INTERVAL, DEFAULT_NAME_DEVICE
+    PROTOCOL_MANUFACTURER, PROTOCOL_NAME, CONF_DEVICE, CONF_TOKEN_UPDATE_INTERVAL, DEFAULT_NAME_DEVICE, DEFAULT_TIMEOUT
 
 if TYPE_CHECKING:
     from hekrapi.command import Command
@@ -241,42 +241,43 @@ class HekrData:
         self.devices[device.device_id] = device
         self.devices_config_entries[device.device_id] = device_cfg
 
-    def create_local_device(self, config: ConfigType) -> Device:
+    def create_local_device(self, device_cfg: ConfigType) -> Device:
         """
         Create device with local connector.
-        :param config: Configuration from which to create the device
+        :param device_cfg: Configuration from which to create the device
         :return: Device object
         """
-        _LOGGER.debug('Creating device via get_add_device with config: %s' % config)
-        protocol_id = config.get(CONF_PROTOCOL)
+        _LOGGER.debug('Creating device via get_add_device with config: %s' % device_cfg)
+        protocol_id = device_cfg.get(CONF_PROTOCOL)
         protocol = SUPPORTED_PROTOCOLS[protocol_id]
 
-        connect_port = config.get(CONF_PORT, protocol.get(PROTOCOL_PORT))
+        connect_port = device_cfg.get(CONF_PORT, protocol.get(PROTOCOL_PORT))
         if connect_port is None:
             raise Exception('Protocol "%s" for device with ID "%s" does not provide default port. Please, '
-                            'configure port manually.' % (protocol_id, config.get(CONF_DEVICE_ID)))
+                            'configure port manually.' % (protocol_id, device_cfg.get(CONF_DEVICE_ID)))
 
         connector = LocalConnector(
-            host=config.get(CONF_HOST),
+            host=device_cfg.get(CONF_HOST),
             port=connect_port,
-            application_id=config.get(CONF_APPLICATION_ID, DEFAULT_APPLICATION_ID),
+            application_id=device_cfg.get(CONF_APPLICATION_ID, DEFAULT_APPLICATION_ID),
         )
+        connector.timeout = device_cfg.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
 
-        device_id = config.get(CONF_DEVICE_ID)
+        device_id = device_cfg[CONF_DEVICE_ID]
         device = Device(
             device_id=device_id,
-            control_key=config.get(CONF_CONTROL_KEY),
+            control_key=device_cfg.get(CONF_CONTROL_KEY),
             protocol=protocol[PROTOCOL_DEFINITION]
         )
         device.connector = connector
 
-        if CONF_NAME not in config:
-            config[CONF_NAME] = DEFAULT_NAME_DEVICE.format(
+        if CONF_NAME not in device_cfg:
+            device_cfg[CONF_NAME] = DEFAULT_NAME_DEVICE.format(
                 protocol_name=protocol.get(PROTOCOL_NAME, protocol_id),
                 device_id=device_id
             )
 
-        self.add_device(device, config)
+        self.add_device(device, device_cfg)
 
         return device
 
@@ -315,7 +316,10 @@ class HekrData:
         }
 
         await account.authenticate()
-        await account.update_devices(protocols=protocols.values())
+        await account.update_devices(
+            protocols=protocols.values(),
+            with_timeout=account_cfg.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+        )
 
         devices_added = 0
         for device_id, device in account.devices.items():

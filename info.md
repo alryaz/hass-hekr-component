@@ -2,10 +2,10 @@
 [![GitHub Page](https://img.shields.io/badge/GitHub-alryaz%2Fhass--hekr--component-blue)](https://github.com/alryaz/hass-hekr-component)
 [![Donate Yandex](https://img.shields.io/badge/Donate-Yandex-red.svg)](https://money.yandex.ru/to/410012369233217)
 [![Donate PayPal](https://img.shields.io/badge/Donate-Paypal-blueviolet.svg)](https://www.paypal.me/alryaz)
-{% set mainline_ver = 'v0.2.2' %}{% set mainline_num_ver = mainline_ver.replace("v", "").replace(".", "") | int %}{%- set features = {
+{% set mainline_num_ver = version_available.replace("v", "").replace(".", "") | int %}{%- set features = {
     'v0.2.2': 'English placeholders for unsupported languages',
     'v0.2.0': 'Accounts support (devices accessible both via local and cloud endpoints)',
-    'v0.1.6': 'Thai, Dutch, Farsi languages support',
+    'v0.1.6': 'Thai, Dutch, Frisian languages support',
     'v0.1.5': 'Automatic reconnection on socket close',
     'v0.1.3': 'Configuration via HomeAssistant UI',
     'v0.1.0': 'Non-blocking listeners for device responses',
@@ -28,11 +28,11 @@ Please, do not use this branch in production environments.
 #### ✔ You are using mainline version{% else %}
 #### 🚨 You are using an outdated release of Hekr component{% if num_ver < 20 %}
 {% set print_header = True %}{% for ver, changes in breaking_changes.items() %}{% set ver = ver.replace("v", "").replace(".","") | int %}{% if num_ver < ver %}{% if print_header %}
-##### Breaking changes (`{{ version_installed }}` -> `{{ mainline_ver }}`){% set print_header = False %}{% endif %}{% for change in changes %}
+##### Breaking changes (`{{ version_installed }}` -> `{{ version_available }}`){% set print_header = False %}{% endif %}{% for change in changes %}
 {{ '- '+change.pop(0) }}{% for changeline in change %}
 {{ '  '+changeline }}{% endfor %}{% endfor %}{% endif %}{% endfor %}
 
-##### Bug fixes (`{{ version_installed }}` -> `{{ mainline_ver }}`){% if num_ver == 20 %}
+##### Bug fixes (`{{ version_installed }}` -> `{{ version_available }}`){% if num_ver == 20 %}
 - Fixed adding local devices when `name` parameter has not been set{% endif %}{% if num_ver < 20 %}
 - Configuration entries do not block new ones after removal{% endif %}{% if num_ver < 16 %}
 - Switches state update fix {% endif %}{% endif %}{% endif %}

@@ -12,7 +12,7 @@ __all__ = [
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.const import CONF_NAME, CONF_SWITCHES, CONF_SCAN_INTERVAL, CONF_DEVICE_ID, CONF_PROTOCOL, \
-    CONF_HOST, CONF_PORT, CONF_SENSORS, CONF_USERNAME, CONF_PASSWORD, CONF_CUSTOMIZE
+    CONF_HOST, CONF_PORT, CONF_SENSORS, CONF_USERNAME, CONF_PASSWORD, CONF_CUSTOMIZE, CONF_TIMEOUT
 
 from .const import CONF_CONTROL_KEY, CONF_APPLICATION_ID, DEFAULT_APPLICATION_ID, DEFAULT_SCAN_INTERVAL, DOMAIN, \
     CONF_DEVICES, CONF_USE_MODEL_FROM_PROTOCOL, \
@@ -68,6 +68,9 @@ BASE_PLATFORM_SCHEMA = {
     # Local authentication
     vol.Optional(CONF_HOST): cv.string,
     vol.Optional(CONF_PORT): cv.positive_int,
+
+    # Base timeout
+    vol.Optional(CONF_TIMEOUT, default=5.0): vol.All(vol.Coerce(float), vol.Range(min=0)),
 }
 
 DEVICE_SCHEMA = vol.All(BASE_PLATFORM_SCHEMA, *BASE_VALIDATOR_DOMAINS)
@@ -79,6 +82,7 @@ ACCOUNT_SCHEMA = {
     vol.Optional(CONF_DUMP_DEVICE_CREDENTIALS, default=False): cv.boolean,
     vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(cv.time_period, cv.positive_timedelta),
     vol.Optional(CONF_TOKEN_UPDATE_INTERVAL): cv.time_period,
+    vol.Optional(CONF_TIMEOUT, default=5.0): vol.All(vol.Coerce(float), vol.Range(min=0)),
 }
 
 CONFIG_SCHEMA = vol.Schema({
@@ -86,6 +90,6 @@ CONFIG_SCHEMA = vol.Schema({
         vol.Optional(CONF_USE_MODEL_FROM_PROTOCOL, default=DEFAULT_USE_MODEL_FROM_PROTOCOL): cv.boolean,
         vol.Optional(CONF_DEVICES): vol.All(cv.ensure_list, [DEVICE_SCHEMA]),
         vol.Optional(CONF_ACCOUNTS): vol.All(cv.ensure_list, [ACCOUNT_SCHEMA]),
-        vol.Optional(CONF_CUSTOMIZE): {cv.string: CUSTOMIZE_SCHEMA}
+        vol.Optional(CONF_CUSTOMIZE): {cv.string: CUSTOMIZE_SCHEMA},
     }
 }, extra=vol.ALLOW_EXTRA)
