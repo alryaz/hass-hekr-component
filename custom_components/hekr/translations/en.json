@@ -5,12 +5,15 @@
             "device_already_exists": "Device with given ID already exists",
             "empty_configuration_import": "Unexpected empty configuration occurred during import",
             "protocol_not_set": "Protocol not set",
-            "unknown_api_error": "Unknown API error {class}: {content}"
+            "unknown_api_error": "Unknown API error"
         },
         "error": {
             "account_invalid_credentials": "Invalid credentials on account",
             "protocol_no_port": "Protocol does not supply default port for communication",
-            "protocol_unsupported": "Selected protocol is not supported"
+            "protocol_unsupported": "Selected protocol is not supported",
+            "device_unreachable": "Device is unreachable",
+            "device_api_error": "Device API error",
+            "device_host_unresolved": "Cannot resolve device's hostname"
         },
         "step": {
             "account": {

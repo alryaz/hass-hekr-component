@@ -1,8 +1,11 @@
 """Config flow for Hekr."""
 import logging
+from collections import OrderedDict
+import voluptuous as vol
 from datetime import timedelta
 from typing import Optional, Dict, Tuple, Any
 
+from hekrapi import ConnectionTimeoutException
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_PROTOCOL, CONF_DEVICE_ID, CONF_NAME, CONF_SCAN_INTERVAL, \
     CONF_TYPE, CONF_USERNAME, CONF_PASSWORD
@@ -33,36 +36,58 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         self._current_config = None
         self._devices_info = None
 
-        import voluptuous as vol
         from collections import OrderedDict
 
         schema_user = OrderedDict()
         schema_user[vol.Required(CONF_TYPE)] = vol.In([CONF_DEVICE, CONF_ACCOUNT])
         self.schema_user = vol.Schema(schema_user)
 
-        schema_device = OrderedDict()
-        schema_device[vol.Optional(CONF_NAME)] = str
-        schema_device[vol.Required(CONF_DEVICE_ID)] = str
-        schema_device[vol.Required(CONF_CONTROL_KEY)] = str
-        schema_device[vol.Required(CONF_HOST)] = str
-        schema_device[vol.Required(CONF_PROTOCOL)] = vol.In({
+        self._supported_protocol_names = {
             p_id: p_def.get(PROTOCOL_NAME, p_id)
             for p_id, p_def in SUPPORTED_PROTOCOLS.items()
-        })
-        schema_device[vol.Optional(CONF_PORT)] = str
-        schema_device[vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL.seconds)] = int
-        self.schema_device = vol.Schema(schema_device)
+        }
 
         self.schema_additional = lambda protocol_id, protocol_key: vol.Schema({
             vol.Optional(protocol_id + '_' + ent_type, default=ent_config.get(PROTOCOL_DEFAULT)): bool
             for ent_type, ent_config in SUPPORTED_PROTOCOLS[protocol_id][protocol_key].items()
         })
 
+    def get_schema_account(self, user_input: Optional[Dict[str, Any]] = None) -> vol.Schema:
+        if user_input is None:
+            user_input = dict()
+
         schema_account = OrderedDict()
-        schema_account[vol.Required(CONF_USERNAME)] = str
-        schema_account[vol.Required(CONF_PASSWORD)] = str
-        schema_account[vol.Optional(CONF_DUMP_DEVICE_CREDENTIALS, default=False)] = bool
-        self.schema_account = vol.Schema(schema_account)
+        schema_account[vol.Required(CONF_USERNAME,
+                                    default=user_input.get(CONF_USERNAME, vol.UNDEFINED))] = str
+        schema_account[vol.Required(CONF_PASSWORD,
+                                    default=user_input.get(CONF_PASSWORD, vol.UNDEFINED))] = str
+        schema_account[vol.Optional(CONF_DUMP_DEVICE_CREDENTIALS,
+                                    default=user_input.get(CONF_DUMP_DEVICE_CREDENTIALS, False))] = bool
+
+        return vol.Schema(schema_account)
+
+    def get_schema_device(self, user_input: Optional[Dict[str, Any]] = None) -> vol.Schema:
+        if user_input is None:
+            user_input = dict()
+
+        schema_device = OrderedDict()
+        schema_device[vol.Optional(CONF_NAME,
+                                   default=user_input.get(CONF_NAME, vol.UNDEFINED))] = str
+        schema_device[vol.Required(CONF_DEVICE_ID,
+                                   default=user_input.get(CONF_DEVICE_ID, vol.UNDEFINED))] = str
+        schema_device[vol.Required(CONF_CONTROL_KEY,
+                                   default=user_input.get(CONF_CONTROL_KEY, vol.UNDEFINED))] = str
+        schema_device[vol.Required(CONF_HOST,
+                                   default=user_input.get(CONF_HOST, vol.UNDEFINED))] = str
+        schema_device[vol.Required(CONF_PROTOCOL,
+                                   default=user_input.get(CONF_PROTOCOL, vol.UNDEFINED))] \
+            = vol.In(self._supported_protocol_names)
+        schema_device[vol.Optional(CONF_PORT,
+                                   default=user_input.get(CONF_PORT, vol.UNDEFINED))] = str  # leave it as str!
+        schema_device[vol.Optional(CONF_SCAN_INTERVAL,
+                                   default=user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL.seconds))] = int
+
+        return vol.Schema(schema_device)
 
     def __getattr__(self, item: str) -> Any:
         """
@@ -218,7 +243,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         if user_input is None:
             return self.async_show_form(
                 step_id="device",
-                data_schema=self.schema_device
+                data_schema=self.get_schema_device()
             )
 
         device_id = user_input[CONF_DEVICE_ID]
@@ -235,7 +260,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
                             % (user_input[CONF_DEVICE_ID], protocol_id))
             return self.async_show_form(
                 step_id="device",
-                data_schema=self.schema_device,
+                data_schema=self.get_schema_device(user_input),
                 errors={CONF_PROTOCOL: "protocol_unsupported"}
             )
 
@@ -244,14 +269,51 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         protocol_name = protocol.get(PROTOCOL_NAME, protocol_id)
 
         # Check whether user didn't provide a port, and query the protocol for one instead
-        if not user_input.get(CONF_PORT) and protocol.get(PROTOCOL_PORT) is None:
+        port = user_input.get(CONF_PORT) or protocol.get(PROTOCOL_PORT)
+        if not port:
             _LOGGER.warning('No port provided for device %s; protocol %s does not define default port.'
                             % (user_input[CONF_DEVICE_ID], protocol_id))
             return self.async_show_form(
                 step_id="device",
-                data_schema=self.schema_device,
+                data_schema=self.get_schema_device(user_input),
                 errors={CONF_PORT: "protocol_no_port"}
             )
+
+        # Test connection
+        from hekrapi.device import Device, LocalConnector
+        from hekrapi.exceptions import HekrAPIException
+        from socket import gaierror
+
+        try:
+            device = Device(device_id=device_id, control_key=user_input[CONF_CONTROL_KEY])
+            device.connector = LocalConnector(host=user_input[CONF_HOST], port=port)
+
+            await device.open_connection()
+            await device.heartbeat()
+
+        except gaierror:
+            return self.async_show_form(
+                step_id="device",
+                data_schema=self.get_schema_device(user_input),
+                errors={CONF_HOST: "device_host_unresolved"}
+            )
+
+        except ConnectionTimeoutException:
+            return self.async_show_form(
+                step_id="device",
+                data_schema=self.get_schema_device(user_input),
+                errors={CONF_HOST: "device_unreachable"}
+            )
+
+        except HekrAPIException:
+            _LOGGER.exception('API error:')
+            return self.async_show_form(
+                step_id="device",
+                data_schema=self.get_schema_device(user_input),
+                errors={"base": "device_api_error"}
+            )
+
+        del device
 
         # Generate default name for device if none provided
         if not user_input.get(CONF_NAME):
@@ -274,7 +336,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         :return:
         """
         if user_input is None:
-            return self.async_show_form(step_id="account", data_schema=self.schema_account)
+            return self.async_show_form(step_id="account", data_schema=self.get_schema_account())
 
         if await self._check_entry_exists(user_input[CONF_USERNAME], CONF_ACCOUNT):
             _LOGGER.info('Account with username "%s" already exists, not adding.' % user_input[CONF_USERNAME])
@@ -292,18 +354,14 @@ class HekrFlowHandler(config_entries.ConfigFlow):
             devices_info = await account.get_devices()
 
         except AuthenticationFailedException:
-            return self.async_show_form(step_id="account", data_schema=self.schema_account, errors={
-                "base": "account_invalid_credentials",
-            })
+            return self.async_show_form(
+                step_id="account",
+                data_schema=self.get_schema_account(user_input),
+                errors={"base": "account_invalid_credentials"}
+            )
 
         except HekrAPIException as e:
-            return self.async_abort(
-                reason="unknown_error",
-                description_placeholders={
-                    "class": e.__class__.__name__,
-                    "content": str(e)
-                }
-            )
+            return self.async_abort(reason="unknown_error")
 
         if user_input[CONF_DUMP_DEVICE_CREDENTIALS]:
             # Clean user_input to prevent credentials dumping directive from saving to config
