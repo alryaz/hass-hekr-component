@@ -434,15 +434,17 @@ class HekrData:
         # @TODO: remove devices
 
     async def cleanup_device(self, device_id: str, with_refresh: bool = True):
-        device = self.devices[device_id]
-        if device.connector.listener is not None and device.connector.listener.is_running:
-            device.connector.listener.stop()
-        await device.connector.close_connection()
+        device = self.devices.get(device_id)
+        if device:
+            if device.connector.listener is not None and device.connector.listener.is_running:
+                device.connector.listener.stop()
+            await device.connector.close_connection()
+            del self.devices[device_id]
+
+        if device_id in self.devices_config_entries:
+            del self.devices_config_entries[device_id]
 
         self.remove_device_updater(device_id)
-
-        self.devices.pop(device_id)
-        self.devices_config_entries.pop(device_id)
 
         if with_refresh:
             self.refresh_connections()

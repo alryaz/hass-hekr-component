@@ -131,7 +131,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
     # Device setup
     async def async_step_device(self, user_input=None):
         if user_input is None:
-            return self.async_show_form(step_id="device", data_schema=self.schema_device_SCHEMA)
+            return self.async_show_form(step_id="device", data_schema=self.schema_device)
 
         if await self._check_entry_exists(user_input[CONF_DEVICE_ID], CONF_DEVICE):
             _LOGGER.info('Device with config %s already exists, not adding' % user_input)
@@ -170,8 +170,6 @@ class HekrFlowHandler(config_entries.ConfigFlow):
 
     # Account setup
     async def async_step_account(self, user_input=None):
-        self._current_type = CONF_ACCOUNT
-
         if user_input is None:
             return self.async_show_form(step_id="account", data_schema=self.schema_account)
 
@@ -179,15 +177,27 @@ class HekrFlowHandler(config_entries.ConfigFlow):
             _LOGGER.info('Account with username "%s" already exists, not adding.' % user_input[CONF_USERNAME])
             return self.async_abort(reason="account_already_exists")
 
-        from hekrapi.exceptions import HekrAPIException
+        from hekrapi.exceptions import HekrAPIException, AuthenticationFailedException
         from hekrapi.account import Account
 
         try:
             account = Account(username=user_input[CONF_USERNAME], password=user_input[CONF_PASSWORD])
             await account.authenticate()
             devices_info = await account.get_devices()
-        except HekrAPIException:
-            return self.async_abort(reason="account_invalid_credentials")
+
+        except AuthenticationFailedException:
+            return self.async_show_form(step_id="account", data_schema=self.schema_account, errors={
+                "base": "account_invalid_credentials",
+            })
+
+        except HekrAPIException as e:
+            return self.async_abort(
+                reason="unknown_error",
+                description_placeholders={
+                    "class": e.__class__.__name__,
+                    "content": str(e)
+                }
+            )
 
         if user_input[CONF_DUMP_DEVICE_CREDENTIALS]:
             _LOGGER.debug('Selected account credentials dump')
@@ -204,6 +214,9 @@ class HekrFlowHandler(config_entries.ConfigFlow):
                 devices_info,
                 protocols=supported_protocols_vals
             )
+
+            _LOGGER.debug('Updating devices in config flow')
+
             placeholder_text = 'hekr:\n  devices:\n' + '\n\n'.join([
                 f"  - {CONF_DEVICE_ID}: {d.device_id}\n"
                 f"    {CONF_NAME}: {d.device_name}\n"
@@ -211,14 +224,23 @@ class HekrFlowHandler(config_entries.ConfigFlow):
                 f"    {CONF_HOST}: {d.lan_address}\n"
                 f"    {CONF_PROTOCOL}: {supported_protocols_keys[supported_protocols_vals.index(d.protocol)]}\n"
                 f"    # device is {'online' if d.is_online else 'offline'}\n"
-                for device_id, d in self._checked_account.devices.items()
+                for device_id, d in account.devices.items()
                 if d.protocol in supported_protocols_vals
             ])
 
-            self.hass.services.async_call('persistent_notification', 'create', {
-                'title': 'Hekr: Configurations (%s)' % user_input[CONF_USERNAME],
-                'message': 'Device configurations for YAML:\n```\n'+placeholder_text
-            })
+            _LOGGER.debug('Will create notification with placeholder text:\n%s' % placeholder_text)
+
+            from homeassistant.components import persistent_notification
+            await self.hass.services.async_call(
+                persistent_notification.DOMAIN,
+                persistent_notification.SERVICE_CREATE, {
+                    persistent_notification.ATTR_TITLE: 'Hekr: Configurations (%s)' % user_input[CONF_USERNAME],
+                    persistent_notification.ATTR_MESSAGE: 'Device configurations for YAML:\n```yaml\n'+placeholder_text+'```',
+                    persistent_notification.ATTR_NOTIFICATION_ID: 'hekr_device_config_%s' % user_input[CONF_USERNAME]
+                },
+                blocking=True,
+                limit=None
+            )
 
         del account
 
@@ -267,7 +289,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         return self.async_abort(reason="unknown_config_type")
 
     async def _check_entry_exists(self, item_id: str, setup_type: str):
-        item_id_key = CONF_DEVICE_ID if setup_type == CONF_DEVICE else CONF_ACCOUNT
+        item_id_key = CONF_DEVICE_ID if setup_type == CONF_DEVICE else CONF_USERNAME
         current_entries = self._async_current_entries()
 
         for config_entry in current_entries:

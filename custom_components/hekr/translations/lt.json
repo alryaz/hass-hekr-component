@@ -1,6 +1,14 @@
 {
     "_remove_me_after_making_translations_or_everything_will_be_replaced": true,
     "config": {
+        "abort": {
+            "account_already_exists": "Account with given username already exists",
+            "device_already_exists": "Device with given ID already exists",
+            "unknown_api_error": "Unknown API error {class}: {content}"
+        },
+        "error": {
+            "account_invalid_credentials": "Invalid credentials on account"
+        },
         "step": {
             "account": {
                 "data": {

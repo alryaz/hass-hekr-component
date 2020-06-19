@@ -129,7 +129,7 @@ async def async_setup(hass: HomeAssistantType, yaml_config):
 async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry):
     conf = config_entry.data
 
-    hekr_data: 'HekrData' = hass.data[DOMAIN]
+    hekr_data: 'HekrData' = hass.data.get(DOMAIN)
     if hekr_data is None:
         from .hekr_data import HekrData
 
@@ -264,7 +264,3 @@ async def async_unload_entry(hass: HomeAssistantType, config_entry: config_entri
         _LOGGER.exception('Exception occurred while unloading entry %s' % config_entry.entry_id)
 
     return True
-
-
-async def async_remove_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry):
-    return await async_unload_entry(hass, config_entry)
