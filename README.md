@@ -8,6 +8,9 @@
 >[![Donate Yandex](https://img.shields.io/badge/Donate-Yandex-red.svg)](https://money.yandex.ru/to/410012369233217)
 >[![Donate PayPal](https://img.shields.io/badge/Donate-Paypal-blueviolet.svg)](https://www.paypal.me/alryaz)
 
+## ❗❗❗❗❗❗❗❗❗ HOMEASSISTANT 0.97+ USERS ❗❗❗❗❗❗❗❗❗
+**Update to version `v0.2.5` and greater is necessary to prevent "Home Assistant is still loading" message.**
+
 ## ❗❗❗ WARNING ❗❗❗
 **THIS PROJECT IS HIGHLY _WORK-IN-PROGRESS_!!!**
 Things are subject to change drastically until at least two to three different Hekr implementations are discovered and
