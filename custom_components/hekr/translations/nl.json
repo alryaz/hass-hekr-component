@@ -3,10 +3,14 @@
         "abort": {
             "account_already_exists": "Account with given username already exists",
             "device_already_exists": "Device with given ID already exists",
+            "empty_configuration_import": "Unexpected empty configuration occurred during import",
+            "protocol_not_set": "Protocol not set",
             "unknown_api_error": "Unknown API error {class}: {content}"
         },
         "error": {
-            "account_invalid_credentials": "Invalid credentials on account"
+            "account_invalid_credentials": "Invalid credentials on account",
+            "protocol_no_port": "Protocol does not supply default port for communication",
+            "protocol_unsupported": "Selected protocol is not supported"
         },
         "step": {
             "account": {

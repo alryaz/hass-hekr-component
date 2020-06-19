@@ -4,10 +4,14 @@
         "abort": {
             "account_already_exists": "Account with given username already exists",
             "device_already_exists": "Device with given ID already exists",
+            "empty_configuration_import": "Unexpected empty configuration occurred during import",
+            "protocol_not_set": "Protocol not set",
             "unknown_api_error": "Unknown API error {class}: {content}"
         },
         "error": {
-            "account_invalid_credentials": "Invalid credentials on account"
+            "account_invalid_credentials": "Invalid credentials on account",
+            "protocol_no_port": "Protocol does not supply default port for communication",
+            "protocol_unsupported": "Selected protocol is not supported"
         },
         "step": {
             "account": {
@@ -33,15 +37,15 @@
                     "power_meter_total_consumption": "Total Consumption",
                     "power_meter_voltage": "Voltage"
                 },
-                "description": "Choose what sensors should be shown with the device.\nConfirm current settings for default mode of operation.",
-                "title": "Sensors | {protocol_name} Protocol"
+                "description": "Protocol: **{protocol_name}**\nDevice name: **{device_name}**\n\nChoose what sensors should be shown with the device.\nConfirm current settings for default mode of operation.",
+                "title": "Sensors"
             },
             "additional_switches": {
                 "data": {
                     "power_meter_main_power": "Main Power"
                 },
-                "description": "Choose what switches should be shown with the device.\nConfirm current settings for default mode of operation.",
-                "title": "Switches | {protocol_name} Protocol"
+                "description": "Selected protocol: **{protocol_name}**\nDevice name: **{device_name}**\n\nChoose what switches should be shown with the device.\nConfirm current settings for default mode of operation.",
+                "title": "Switches"
             },
             "device": {
                 "data": {
