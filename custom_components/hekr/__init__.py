@@ -506,14 +506,12 @@ async def async_setup_device(hass: HomeAssistantType, config: ConfigType) -> Uni
 
     from hekrapi.device import Device
 
-    protocol_id = config[CONF_PROTOCOL]
-    supported_protocol = SUPPORTED_PROTOCOLS[protocol_id]
-    device_protocol = supported_protocol.definition
+    supported_protocol: SupportedProtocolType = config[CONF_PROTOCOL]
 
     device = Device(
         device_id=device_id,
         control_key=config.get(CONF_CONTROL_KEY),
-        protocol=device_protocol
+        protocol=supported_protocol.definition
     )
     direct_connector = device.protocol.create_direct_connector(
         host=config[CONF_HOST],

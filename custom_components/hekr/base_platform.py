@@ -304,7 +304,7 @@ class HekrEntity(Entity):
             # Only happens in direct connections
             attrs['manufacturer'] = d_manufacturer
             attrs['model'] = d_model
-            attrs['name'] = supported_protocol.name
+            attrs['name'] = d_name
         else:
             attrs['name'] = info.name or d_name
             attrs['sw_version'] = info.firmware_version

@@ -177,7 +177,7 @@ class SwitchConfig(_ToggleConfig):
 
 
 class SupportedProtocol(ABC):
-    name: str = NotImplemented
+    name: str = None
     definition: Type['Protocol'] = NotImplemented
 
     # optional to implement, values not used if None
