@@ -1,14 +1,15 @@
 {
-    "domain": "hekr",
-    "name": "Hekr",
-    "documentation": "https://github.com/alryaz/hass-hekr-component",
-    "dependencies": [],
-    "issue_tracker": "https://github.com/alryaz/hass-hekr-component/issues",
-    "codeowners": [
-        "@alryaz"
-    ],
-    "config_flow": true,
-    "requirements": [
-        "hekrapi==0.2.5"
-    ]
+  "domain": "hekr",
+  "name": "Hekr",
+  "documentation": "https://github.com/alryaz/hass-hekr-component",
+  "dependencies": [],
+  "issue_tracker": "https://github.com/alryaz/hass-hekr-component/issues",
+  "codeowners": [
+    "@alryaz"
+  ],
+  "config_flow": true,
+  "requirements": [
+    "hekrapi==0.3.0-rc1",
+    "netaddr==0.7.20"
+  ]
 }

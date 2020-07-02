@@ -5,7 +5,6 @@ __all__ = [
     'BASE_PLATFORM_SCHEMA',
     'BASE_VALIDATOR_DOMAINS',
     'CONFIG_SCHEMA',
-    'CUSTOMIZE_SCHEMA',
     'test_for_list_correspondence',
 ]
 
@@ -45,10 +44,6 @@ BASE_DEVICE_SCHEMA = {
     vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(cv.time_period, cv.positive_timedelta),
 }
 
-CUSTOMIZE_SCHEMA = vol.Any(False, vol.Schema(BASE_DEVICE_SCHEMA).extend({
-    vol.Optional(CONF_PROTOCOL): vol.In(SUPPORTED_PROTOCOLS.keys())
-}))
-
 BASE_VALIDATOR_DOMAINS = [
     test_for_list_correspondence(config_key, protocol_key)
     for config_key, (entity_domain, protocol_key) in CONF_DOMAINS.items()
@@ -58,18 +53,24 @@ BASE_PLATFORM_SCHEMA = {
     **BASE_DEVICE_SCHEMA,
 
     # Required keys on direct control
+    # -- Device ID
     vol.Required(CONF_DEVICE_ID): cv.string,
+    # -- Control key
     vol.Optional(CONF_CONTROL_KEY): cv.string,
+    # -- Manual protocol selection
     vol.Required(CONF_PROTOCOL): vol.In(SUPPORTED_PROTOCOLS.keys()),
 
     # Optional attributes
+    # -- Application ID to use in requests
     vol.Optional(CONF_APPLICATION_ID, default=DEFAULT_APPLICATION_ID): cv.string,
 
-    # Local authentication
+    # Direct authentication
+    # -- Host / IP address
     vol.Optional(CONF_HOST): cv.string,
+    # -- Port to communicate
     vol.Optional(CONF_PORT): cv.positive_int,
 
-    # Base timeout
+    # Base request timeout
     vol.Optional(CONF_TIMEOUT, default=5.0): vol.All(vol.Coerce(float), vol.Range(min=0)),
 }
 
@@ -90,6 +91,5 @@ CONFIG_SCHEMA = vol.Schema({
         vol.Optional(CONF_USE_MODEL_FROM_PROTOCOL, default=DEFAULT_USE_MODEL_FROM_PROTOCOL): cv.boolean,
         vol.Optional(CONF_DEVICES): vol.All(cv.ensure_list, [DEVICE_SCHEMA]),
         vol.Optional(CONF_ACCOUNTS): vol.All(cv.ensure_list, [ACCOUNT_SCHEMA]),
-        vol.Optional(CONF_CUSTOMIZE): {cv.string: CUSTOMIZE_SCHEMA},
     }
 }, extra=vol.ALLOW_EXTRA)

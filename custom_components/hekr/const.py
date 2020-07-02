@@ -1,16 +1,33 @@
 """ Constants """
 
 from datetime import timedelta
+from typing import Tuple, Optional, Union, Dict, Any, TYPE_CHECKING, Sequence, Mapping, TypeVar, Callable
 
 from homeassistant.components.sensor import DOMAIN as DOMAIN_SENSOR
 from homeassistant.components.switch import DOMAIN as DOMAIN_SWITCH
 from homeassistant.const import CONF_DEVICE_ID, ENERGY_KILO_WATT_HOUR, POWER_WATT, ATTR_ICON, ATTR_NAME, CONF_SENSORS, \
     CONF_SWITCHES
 
+if TYPE_CHECKING:
+    # noinspection PyUnresolvedReferences
+    from hekrapi.types import DeviceID
+    # noinspection PyUnresolvedReferences
+    from .supported_protocols import CommandCall
+
 DOMAIN = "hekr"
 
+# Domain data holders
+DATA_DEVICES = DOMAIN + "_devices"
+DATA_ACCOUNTS = DOMAIN + "_accounts"
+DATA_ACCOUNTS_CONFIG = DOMAIN + "_accounts_config"
+DATA_DEVICES_CONFIG = DOMAIN + "_devices_config"
+DATA_UPDATERS = DOMAIN + "_updaters"
+DATA_DEVICE_LISTENERS = DOMAIN + "_device_listeners"
+DATA_ACCOUNT_LISTENERS = DOMAIN + "_account_listeners"
+DATA_DEVICE_ENTITIES = DOMAIN + "_device_entities"
+
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=15)
-DEFAULT_NAME_DEVICE = "Hekr {protocol_name} {device_id}"
+DEFAULT_NAME_DEVICE = 'Hekr {device_id} {entity_type}'
 DEFAULT_SENSOR_ICON = "mdi:flash"
 DEFAULT_SWITCH_ICON = "mdi:switch"
 DEFAULT_QUERY_COMMAND = "queryDev"
@@ -19,7 +36,8 @@ DEFAULT_CLOUD_HOST = "fra-hub.hekreu.me"
 DEFAULT_CLOUD_PORT = 186
 DEFAULT_USE_MODEL_FROM_PROTOCOL = True
 DEFAULT_SLEEP_INTERVAL = 4
-DEFAULT_TIMEOUT = 10.0
+DEFAULT_TIMEOUT = timedelta(seconds=5)
+DEFAULT_NAME_FORMAT = "Hekr {device_id} {ent_name}"
 
 UNIT_VOLTAGE = "V"
 UNIT_CURRENT = "A"
@@ -27,7 +45,7 @@ UNIT_ENERGY_CONSUMED = ENERGY_KILO_WATT_HOUR
 UNIT_POWER_FACTOR = None
 UNIT_POWER_ACTIVE = POWER_WATT
 UNIT_POWER_REACTIVE = "kVa"
-UNIT_CURRENT_CONSUMPTION = 'W'
+UNIT_CURRENT_CONSUMPTION = "W"
 
 CONF_DEVICE_ID = CONF_DEVICE_ID
 CONF_CONTROL_KEY = "control_key"
@@ -41,6 +59,9 @@ CONF_DEVICES = "devices"
 CONF_USE_MODEL_FROM_PROTOCOL = "use_model_from_protocol"
 CONF_DUMP_DEVICE_CREDENTIALS = "dump_device_credentials"
 CONF_TOKEN_UPDATE_INTERVAL = "token_update_interval"
+CONF_NETWORK = "network"
+CONF_EXPECTED_TYPE = "_expected_type"
+CONF_DETECTED_TYPE = "_detected_type"
 
 PROTOCOL_NAME = "name"
 PROTOCOL_MODEL = "model"
@@ -69,3 +90,16 @@ CONF_DOMAINS = {
     CONF_SENSORS: (DOMAIN_SENSOR, PROTOCOL_SENSORS),
     CONF_SWITCHES: (DOMAIN_SWITCH, PROTOCOL_SWITCHES),
 }
+
+# Config data type
+AccountUsername = str
+YAMLConfigKeyType = Union[
+    Tuple[AccountUsername, Optional['DeviceID']],
+    Tuple[Optional['DeviceID'], AccountUsername]
+]
+YAMLConfigDataType = Dict[str, Any]
+ConfigDataType = Dict[YAMLConfigKeyType, Dict[str, Any]]
+AttributesType = Union[bool, Sequence[str], Mapping[str, str]]
+CancellationCall = Callable[[], Any]
+ListContentType = TypeVar('ListContentType')
+AnyCommand = Union[int, 'Command', 'CommandCall']

@@ -8,19 +8,21 @@ __all__ = [
 ]
 
 import logging
-from typing import Any, Optional
+from functools import partial
+from typing import Any, Dict, Mapping, Optional
 
 from homeassistant.components.switch import PLATFORM_SCHEMA, DOMAIN as PLATFORM_DOMAIN, \
     ATTR_CURRENT_POWER_W, ATTR_TODAY_ENERGY_KWH
 from homeassistant.const import STATE_ON, STATE_OFF
 
+from .supported_protocols import SwitchConfig
+
 try:
     from homeassistant.components.switch import SwitchEntity
 except ImportError:
-    from homeassistant.component.switch import SwitchDevice as SwitchEntity
+    from homeassistant.components.switch import SwitchDevice as SwitchEntity
 
-from .base_platform import HekrEntity, create_platform_basics
-from .const import PROTOCOL_CMD_TURN_ON, PROTOCOL_CMD_TURN_OFF
+from .base_platform import HekrEntity, base_async_setup_platform, base_async_setup_entry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,46 +34,37 @@ class HekrSwitch(HekrEntity, SwitchEntity):
         self._today_energy_kwh = None
 
     @property
+    def entity_config(self) -> 'SwitchConfig':
+        return getattr(self._supported_protocol, self._ent_type)
+
+    @property
     def is_on(self) -> bool:
         return self.state == STATE_ON
 
     def turn_on(self, **kwargs: Any) -> None:
         self._state = STATE_ON
-        self.execute_protocol_command(PROTOCOL_CMD_TURN_ON)
+        self._sync_execute_command(self.entity_config.cmd_turn_on)
         self.schedule_update_ha_state()
 
     def turn_off(self, **kwargs: Any) -> None:
         self._state = STATE_OFF
-        self.execute_protocol_command(PROTOCOL_CMD_TURN_OFF)
+        self._sync_execute_command(self.entity_config.cmd_turn_off)
         self.schedule_update_ha_state()
 
-    async def handle_data_update(self, data):
-        power_attr = self._config.get(ATTR_CURRENT_POWER_W)
-        if power_attr is not None:
-            self._current_power_w = data.get(power_attr)
+    def handle_data_update(self, filtered_attributes: Dict[str, Any]) -> None:
+        self._current_power_w = filtered_attributes.get(ATTR_CURRENT_POWER_W)
+        self._today_energy_kwh = filtered_attributes.get(ATTR_TODAY_ENERGY_KWH)
 
-        today_energy_attr = self._config.get(ATTR_TODAY_ENERGY_KWH)
-        if today_energy_attr is not None:
-            self._today_energy_kwh = data.get(today_energy_attr)
-
-        await super().handle_data_update(data)
+        super().handle_data_update(filtered_attributes)
 
     @property
-    def current_power_w(self):
+    def current_power_w(self) -> Optional[float]:
         return self._current_power_w
 
     @property
-    def today_energy_kwh(self):
+    def today_energy_kwh(self) -> Optional[float]:
         return self._today_energy_kwh
 
-    @property
-    def unique_id(self) -> Optional[str]:
-        return '_'.join((self._device_id, PLATFORM_DOMAIN, self._ent_type))
 
-
-PLATFORM_SCHEMA, async_setup_platform, async_setup_entry = create_platform_basics(
-    logger=_LOGGER,
-    entity_domain=PLATFORM_DOMAIN,
-    entity_factory=HekrSwitch,
-    base_schema=PLATFORM_SCHEMA,
-)
+async_setup_platform = partial(base_async_setup_platform, PLATFORM_DOMAIN, HekrSwitch, logger=_LOGGER)
+async_setup_entry = partial(base_async_setup_entry, PLATFORM_DOMAIN, HekrSwitch, logger=_LOGGER)
