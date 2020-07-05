@@ -9,7 +9,7 @@
   ],
   "config_flow": true,
   "requirements": [
-    "hekrapi==0.3.0-rc1",
+    "hekrapi==0.3.0-rc2",
     "netaddr==0.7.20"
   ]
 }

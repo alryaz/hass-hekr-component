@@ -9,33 +9,32 @@ __all__ = [
 
 import logging
 from functools import partial
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from homeassistant.components.switch import PLATFORM_SCHEMA, DOMAIN as PLATFORM_DOMAIN, \
     ATTR_CURRENT_POWER_W, ATTR_TODAY_ENERGY_KWH
 from homeassistant.const import STATE_ON, STATE_OFF
 
-from .supported_protocols import SwitchConfig
+from .base_platform import HekrEntity, base_async_setup_platform, base_async_setup_entry
 
 try:
-    from homeassistant.components.switch import SwitchEntity
+    from homeassistant.components.switch import SwitchDevice
 except ImportError:
-    from homeassistant.components.switch import SwitchDevice as SwitchEntity
+    from homeassistant.components.switch import SwitchEntity as SwitchDevice
 
-from .base_platform import HekrEntity, base_async_setup_platform, base_async_setup_entry
+if TYPE_CHECKING:
+    from .supported_protocols import SwitchConfig
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class HekrSwitch(HekrEntity, SwitchEntity):
+class HekrSwitch(HekrEntity, SwitchDevice):
+    _entity_config: 'SwitchConfig' = NotImplemented
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._current_power_w = None
         self._today_energy_kwh = None
-
-    @property
-    def entity_config(self) -> 'SwitchConfig':
-        return getattr(self._supported_protocol, self._ent_type)
 
     @property
     def is_on(self) -> bool:
@@ -43,12 +42,12 @@ class HekrSwitch(HekrEntity, SwitchEntity):
 
     def turn_on(self, **kwargs: Any) -> None:
         self._state = STATE_ON
-        self._sync_execute_command(self.entity_config.cmd_turn_on)
+        self._sync_execute_command(self._entity_config.cmd_turn_on)
         self.schedule_update_ha_state()
 
     def turn_off(self, **kwargs: Any) -> None:
         self._state = STATE_OFF
-        self._sync_execute_command(self.entity_config.cmd_turn_off)
+        self._sync_execute_command(self._entity_config.cmd_turn_off)
         self.schedule_update_ha_state()
 
     def handle_data_update(self, filtered_attributes: Dict[str, Any]) -> None:

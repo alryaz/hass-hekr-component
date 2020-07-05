@@ -26,7 +26,8 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Union, Set
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from hekrapi.enums import DeviceResponseState
-from hekrapi.exceptions import ConnectorAuthenticationError, HekrAPIException, ConnectorError, AccountException
+from hekrapi.exceptions import ConnectorAuthenticationError, HekrAPIException, ConnectorError, AccountException, \
+    ConnectorTimeoutException, ConnectorException
 from hekrapi.types import DeviceID
 from homeassistant import config_entries
 from homeassistant.const import CONF_PROTOCOL, CONF_USERNAME, CONF_PASSWORD, CONF_TIMEOUT, \
@@ -41,7 +42,7 @@ from homeassistant.loader import bind_hass
 from .const import DOMAIN, CONF_DEVICE_ID, CONF_CONTROL_KEY, CONF_DEVICES, AccountUsername, ListContentType, \
     DEFAULT_NAME_FORMAT, DEFAULT_TIMEOUT, DATA_ACCOUNTS, DATA_DEVICES, DATA_UPDATERS, CancellationCall, \
     DATA_DEVICE_LISTENERS, DATA_ACCOUNT_LISTENERS, DATA_ACCOUNTS_CONFIG, DATA_DEVICES_CONFIG, \
-    DATA_DEVICE_ENTITIES, DEFAULT_SCAN_INTERVAL
+    DATA_DEVICE_ENTITIES, DEFAULT_SCAN_INTERVAL, DEFAULT_RESTART_DELAY
 from .supported_protocols import (
     SUPPORTED_PROTOCOLS,
     ALL_SUPPORTED_DOMAINS,
@@ -360,14 +361,14 @@ async def _connector_routine(hass: HomeAssistantType,
 async def connector_listener(hass: HomeAssistantType, connector: Union['DirectConnector', 'CloudConnector']) -> None:
     from hekrapi.connector import DirectConnector
     postfix = ('direct' if isinstance(connector, DirectConnector) else 'cloud') + '.' + connector.host
-    logger = logging.getLogger(__name__ + '.' + postfix)
+    logger = logging.getLogger(__name__ + '.connector.' + postfix)
     try:
         while True:
             try:
                 await _connector_routine(hass, connector, logger)
-            except ConnectorError as e:
-                logger.error("Error occurred (delaying 5 seconds to restart): %s" % (e, ))
-                await asyncio.sleep(5)
+            except ConnectorException as e:
+                logger.error("Error occurred (delaying %d seconds to restart): %s" % (DEFAULT_RESTART_DELAY, e, ))
+                await asyncio.sleep(DEFAULT_RESTART_DELAY)
     except asyncio.CancelledError:
         logger.debug("Stopping listener gracefully")
     except BaseException as e:
@@ -532,15 +533,19 @@ async def async_setup_device(hass: HomeAssistantType, config: ConfigType) -> Uni
         devices_data[device_id] = device
         return supported_protocol.get_supported_domains()
 
-    except ConnectionRefusedError:
-        _LOGGER.error('Direct connection refused to device with ID %s at host %s, port %d'
-                      % (device_id, direct_connector.host, direct_connector.port))
+    except ConnectorTimeoutException:
+        _LOGGER.error("Connection timeout on device with ID '%s'" % (device_id, ))
+    except ConnectionError:
+        _LOGGER.error('Direct connection to device with ID %s could not be established' % (device_id, ))
+
     except ConnectorAuthenticationError:
         _LOGGER.error('Could not authenticate direct connection to device with ID %s'
                       % (device_id,))
-    except ConnectionError:
-        raise ConfigEntryNotReady('Direct connection to device with ID %s could not be established'
-                                  % (device_id,))
+        return False
+
+    await direct_connector.close_connection()
+
+    raise ConfigEntryNotReady
 
 
 @bind_hass

@@ -7,11 +7,13 @@ __all__ = [
     'SupportedProtocol',
     'SupportedProtocolType',
     'get_supported_id_by_definition',
-    'CommandCall'
+    'CommandCall',
+    'SwitchConfig',
+    'SensorConfig',
 ]
 
 from abc import ABC
-from typing import Optional, TYPE_CHECKING, Dict, Any, Sequence, Type, Callable, Set, Tuple, Union
+from typing import Optional, TYPE_CHECKING, Dict, Any, Sequence, Type, Callable, Set, Tuple, Union, List
 
 from hekrapi.protocols.power_meter import PowerMeterProtocol, PowerSupplyWarning, VoltageWarning, CurrentWarning
 from homeassistant.components.switch import ATTR_CURRENT_POWER_W, DEVICE_CLASS_SWITCH
@@ -276,21 +278,18 @@ class SupportedPowerMeterProtocol(SupportedProtocol):
             attributes['mean_voltage'] = round(float(sum(voltages)) / len(voltages), 1)
 
         # detect state of the device
-        attributes["state"] = STATE_OK
-        if "warning_voltage" in attributes:
-            if attributes['warning_voltage'] != VoltageWarning.OK:
-                attributes["state"] = STATE_PROBLEM
-            attributes['warning_voltage'] = attributes['warning_voltage'].name.lower()
-
-        if "warning_battery" in attributes:
-            if attributes['warning_battery'] != PowerSupplyWarning.OK:
-                attributes["state"] = STATE_PROBLEM
-            attributes["warning_battery"] = attributes["warning_battery"].name.lower()
-
-        if "warning_current" in attributes:
-            if attributes['warning_current'] != CurrentWarning.OK:
-                attributes["state"] = STATE_PROBLEM
-            attributes['warning_current'] = attributes['warning_current'].name.lower()
+        state = STATE_OK
+        for key, warn in [
+            ("warning_voltage", VoltageWarning),
+            ("warning_battery", PowerSupplyWarning),
+            ("warning_current", CurrentWarning)
+        ]:
+            warning: Optional[warn] = attributes.get(key)
+            if warning is not None:
+                if warning != warn.OK:
+                    state = STATE_PROBLEM
+                attributes[key] = warning.name.lower()
+        attributes["state"] = state
 
         # process switch state
         if "switch_state" in attributes:
