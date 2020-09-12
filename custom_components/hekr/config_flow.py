@@ -6,7 +6,7 @@ from typing import Optional, Dict, Tuple, Any
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_PROTOCOL, CONF_DEVICE_ID, CONF_NAME, CONF_SCAN_INTERVAL, \
     CONF_TYPE, CONF_USERNAME, CONF_PASSWORD
-from homeassistant.helpers import ConfigType
+from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, PROTOCOL_NAME, CONF_DEVICE, CONF_ACCOUNT, DEFAULT_NAME_DEVICE, PROTOCOL_PORT, CONF_DOMAINS, \
     CONF_CONTROL_KEY, DEFAULT_SCAN_INTERVAL, PROTOCOL_DEFAULT, CONF_DUMP_DEVICE_CREDENTIALS, PROTOCOL_DEFINITION
