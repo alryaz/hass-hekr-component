@@ -2,14 +2,12 @@
 # HomeAssistant Hekr Integration 
 > HomeAssistant implementation of Hekr API communicator
 >
->[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+>[![hacs_badge](https://img.shields.io/badge/HACS-Default-green.svg)](https://github.com/custom-components/hacs)
 >[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
->[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/alryaz/hass-hekr-component/graphs/commit-activity)
+>[![Maintenance](https://img.shields.io/badge/Maintained%3F-bugfixes%20only-yellow.svg)](https://github.com/alryaz/hass-hekr-component/graphs/commit-activity)
+> 
 >[![Donate Yandex](https://img.shields.io/badge/Donate-Yandex-red.svg)](https://money.yandex.ru/to/410012369233217)
 >[![Donate PayPal](https://img.shields.io/badge/Donate-Paypal-blueviolet.svg)](https://www.paypal.me/alryaz)
-
-## ❗❗❗❗❗❗❗❗❗ HOMEASSISTANT 0.97+ USERS ❗❗❗❗❗❗❗❗❗
-**Update to version `v0.2.5` and greater is necessary to prevent "Home Assistant is still loading" message.**
 
 ## ❗❗❗ WARNING ❗❗❗
 **THIS PROJECT IS HIGHLY _WORK-IN-PROGRESS_!!!**
@@ -17,20 +15,16 @@ Things are subject to change drastically until at least two to three different H
 added to the integration as well as the parent python module. Please, read release notes carefully before installing
 or upgrading. __I am not responsible for damaging your devices in any way!__
 
+## ❗❗❗ _Elro Connects_ owners ❗❗❗
+This module **does not** yet support _Elro Connects_, however work has been done to make a testing implementation.
+Testers with _Elro K1_ gateways are needed. Please, contact me via e-mail 
+<[alryaz@xavux.com](mailto:alryaz@xavux.com?subject=Elro%20Connects%20Integration)>.
 
-## !!! BREAKING CHANGES IN >=0.2.0 !!!
-- Platform setups are no longer supported. Unfortunately, this is a trade-off for supporting accounts.
-  When you update to the latest version, a persistent notification will appear containing necessary
-  YAML configuration that you can add to your configuration.yaml file.
-- Config entry management mechanism vastly overhauled. While this should not influence
-  existing setups, it is advised to keep a backup of `core.config_entries` on update.
-- From now on, entries created within interface **will override** YAML configuration. This is done
-  to facilitate capability of removing YAML entry live and replacing it with different config.
 
 ## Contribution
 If you found yourself using Wisen application with any of your Smart Home devices, contact me via
-e-mail <alryaz@xavux.com>. The process of adding new devices is not yet completely formalized,
-the milestone is set for a release-candidate version.
+e-mail <[alryaz@xavux.com](mailto:alryaz@xavux.com?subject=Hekr%20for%20HomeAssistant%20Contribution)>.
+The process of adding new devices is not yet completely formalized, the milestone is set for a release-candidate version.
 
 Check original repository with HekrAPI bindings: [hekrapi-python: Hekr protocol bindings for Python](https://github.com/alryaz/hekrapi-python)
 
@@ -40,9 +34,13 @@ translation key, and submit a pull request. Alternatively you can send a transla
 communication channels listed at the end of this page.
 
 ## Power meter protocol: `power_meter`
+
 ![Loaded badges for power meter protocol](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_meter/badges.png)
 
 _(more screenshots available at: [images/power_meter](images/power_meter))_
+
+### Supported devices
+- HIKING DDS238-4W
 
 ### Example configuration
 ```yaml
@@ -116,9 +114,24 @@ hekr:
 ```
 
 ## Fetching `device_id` and `control_key` for local setup
-**The easiest way to accomplish this is to begin an integration flow with `account` setup type. Tick the box
-`Create notification with device info`, and a persistent notification will appear containing compatible YAML config.**
+The following steps (evidently) assume you already paired target device using Wisen.
 
+### _Integrations_ menu
+The easiest way to accomplish this is to begin an integration flow with `account` setup type.
+
+Tick the box `Create notification with device info` during setup, and a persistent notification
+will appear containing compatible YAML config.
+
+### _Wisen_ application
+To obtain `device_id` and `control_key`:
+- Open _Wisen_ application
+- Open sidebar menu (on the left)
+- Select _Management_ menu entry
+- Select your device
+- Tap device icon at the top 5 times
+- A toast notification will appear
+
+### HttpCanary (packet sniffing, Android)
 The following tutorial is left for educational purposes / explanation on how protocol decoding was done.
 
 ##### Pre-requisites:

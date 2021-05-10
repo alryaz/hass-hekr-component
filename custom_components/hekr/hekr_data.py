@@ -27,6 +27,8 @@ from custom_components.hekr.const import DOMAIN, DEFAULT_USE_MODEL_FROM_PROTOCOL
     PROTOCOL_MANUFACTURER, PROTOCOL_NAME, CONF_DEVICE, CONF_TOKEN_UPDATE_INTERVAL, DEFAULT_NAME_DEVICE, DEFAULT_TIMEOUT
 
 if TYPE_CHECKING:
+    # noinspection PyProtectedMember
+    from hekrapi.device import _BaseConnector
     from hekrapi.command import Command
     from homeassistant.core import Event
     from homeassistant.helpers.device_registry import DeviceRegistry, DeviceEntry
@@ -64,10 +66,12 @@ class HekrData:
         self.use_model_from_protocol = DEFAULT_USE_MODEL_FROM_PROTOCOL
 
         self.hass.bus.async_listen_once(
-            EVENT_HOMEASSISTANT_START, self.callback_homeassistant_start
+            EVENT_HOMEASSISTANT_START,
+            self.callback_homeassistant_start
         )
         self.hass.bus.async_listen_once(
-            EVENT_HOMEASSISTANT_STOP, self.callback_homeassistant_stop
+            EVENT_HOMEASSISTANT_STOP,
+            self.callback_homeassistant_stop
         )
 
     # HomeAssistant event callbacks
@@ -164,7 +168,7 @@ class HekrData:
             attrs['connections'] = set() # @TODO: physical address
             attrs['name'] = device.device_name
             attrs['sw_version'] = device.firmware_version
-            #attrs['hw_version'] = device.hardware_version
+            # attrs['hw_version'] = device.hardware_version
 
         if self.use_model_from_protocol:
             attrs['model'] = protocol.get(PROTOCOL_MODEL, model)
