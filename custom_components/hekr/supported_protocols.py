@@ -164,7 +164,7 @@ POWER_METER = {
         },
         "reactive_power": {
             ATTR_NAME: "Reactive Power", ATTR_ICON: "mdi:flash-outline",
-            ATTR_STATE: "total_reactive_power", ATTR_UNIT_OF_MEASUREMENT: "kVa",
+            ATTR_STATE: "total_reactive_power", ATTR_UNIT_OF_MEASUREMENT: "kVar",
             ATTR_MONITORED: ["reactive_power_1", "reactive_power_2", "reactive_power_3"],
             PROTOCOL_CMD_UPDATE: 'queryData',
             PROTOCOL_CMD_RECEIVE: 'reportData',
