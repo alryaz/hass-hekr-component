@@ -12,8 +12,13 @@ from homeassistant.const import (
     STATE_OK, STATE_PROBLEM, STATE_ON, STATE_OFF, ATTR_STATE,
     ATTR_DEVICE_CLASS, DEVICE_CLASS_POWER)
 
-from hekrapi.protocols.power_meter import PROTOCOL as PROTOCOL_POWER_METER, VoltageWarning, PowerSupplyWarning, \
-    CurrentWarning
+from hekrapi.protocols.power_meter import (
+    PROTOCOL as PROTOCOL_POWER_METER,
+    VoltageWarning,
+    PowerSupplyWarning,
+    CurrentWarning,
+)
+from hekrapi.protocols.power_socket import PROTOCOL as PROTOCOL_POWER_SOCKET
 from .const import ATTR_MONITORED, PROTOCOL_DETECTION, PROTOCOL_DEFINITION, PROTOCOL_FILTER, \
     PROTOCOL_SENSORS, PROTOCOL_CMD_UPDATE, PROTOCOL_DEFAULT, PROTOCOL_SWITCHES, PROTOCOL_PORT, PROTOCOL_NAME, \
     PROTOCOL_CMD_RECEIVE, PROTOCOL_CMD_TURN_ON, PROTOCOL_CMD_TURN_OFF, PROTOCOL_MODEL, PROTOCOL_MANUFACTURER
@@ -189,6 +194,36 @@ POWER_METER = {
     }
 }
 
+def power_socket_attribute_filter(attributes: dict) -> dict:
+    if "power" in attributes:
+        attributes["power"] = STATE_ON if attributes["power"] else STATE_OFF
+
+    return attributes
+
+POWER_SOCKET = {
+    PROTOCOL_NAME: "Power Socket",
+    PROTOCOL_PORT: 10000,
+    PROTOCOL_DEFINITION: PROTOCOL_POWER_SOCKET,
+    PROTOCOL_FILTER: power_socket_attribute_filter,
+    PROTOCOL_SWITCHES: {
+        "main_power": {
+            ATTR_NAME: "Main Power",
+            ATTR_ICON: {
+                STATE_ON: "hass:power-plug",
+                PROTOCOL_DEFAULT: "hass:power-plug-off",
+            },
+            ATTR_STATE: "power",
+            ATTR_DEVICE_CLASS: DEVICE_CLASS_SWITCH,
+            PROTOCOL_CMD_UPDATE: "Quary",
+            PROTOCOL_CMD_RECEIVE: "Report",
+            PROTOCOL_CMD_TURN_ON: ("SetPower", {"power": True}),
+            PROTOCOL_CMD_TURN_ON: ("SetPower", {"power": False}),
+            PROTOCOL_DEFAULT: True,
+        }
+    }
+}
+
 SUPPORTED_PROTOCOLS = {
-    "power_meter": POWER_METER
+    "power_meter": POWER_METER,
+    "power_socket": POWER_SOCKET,
 }

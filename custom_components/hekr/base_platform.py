@@ -245,9 +245,9 @@ async def _setup_entity(logger: 'logging.Logger', hass: HomeAssistantType, async
     protocol = SUPPORTED_PROTOCOLS[protocol_id]
 
     if protocol_key is not None and protocol_key not in protocol:
-        logger.error('Protocol "%s" does not support [%s] component, and therefore cannot be set up.'
-                     % (entity_domain, protocol_id))
-        return False
+        logger.error('Protocol "%s" does not support [%s] component, and therefore will be skipped.'
+                     % (protocol_id, entity_domain))
+        return True
 
     try:
         device_id = config[CONF_DEVICE_ID]
