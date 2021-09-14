@@ -33,7 +33,13 @@ You can also help with translating this component. Fork this repository, make ch
 translation key, and submit a pull request. Alternatively you can send a translation file directly through one of the
 communication channels listed at the end of this page.
 
+## Supported protocols
+
+- [Power meter protocol](#power_meter_protocol): `power_meter`
+- [Power socket protocol](#power_socket_protocol): `power_socket`
+
 ## Power meter protocol: `power_meter`
+<a name="power_meter_protocol">
 
 ![Loaded badges for power meter protocol](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_meter/badges.png)
 
@@ -114,6 +120,7 @@ hekr:
 ```
 
 ## Power socket protocol: `power_socket`
+<a name="power_socket_protocol">
 
 ![Loaded switches for power socket protocol](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_socket/switches.png)
 
