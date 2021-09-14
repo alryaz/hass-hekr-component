@@ -1,9 +1,9 @@
 """Base code to generate other platforms."""
 
-__all__ = [
-    'HekrEntity',
-    'create_platform_basics',
-]
+__all__ = (
+    "HekrEntity",
+    "create_platform_basics",
+)
 
 import asyncio
 from collections import OrderedDict
@@ -13,16 +13,37 @@ from typing import Optional, TYPE_CHECKING, Dict, Any, Union, List, Type
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components.binary_sensor.device_condition import DEVICE_CLASS_NONE
+from homeassistant.components.sensor import ATTR_STATE_CLASS
 from homeassistant.const import (
-    STATE_UNKNOWN, STATE_OK, CONF_PROTOCOL,
-    CONF_NAME, ATTR_NAME, ATTR_ICON, ATTR_STATE, ATTR_UNIT_OF_MEASUREMENT, CONF_SCAN_INTERVAL,
-    ATTR_DEVICE_CLASS, CONF_DEVICE_ID, CONF_USERNAME, CONF_PLATFORM)
+    STATE_UNKNOWN,
+    STATE_OK,
+    CONF_PROTOCOL,
+    CONF_NAME,
+    ATTR_NAME,
+    ATTR_ICON,
+    ATTR_STATE,
+    ATTR_UNIT_OF_MEASUREMENT,
+    CONF_SCAN_INTERVAL,
+    ATTR_DEVICE_CLASS,
+    CONF_DEVICE_ID,
+    CONF_USERNAME,
+    CONF_PLATFORM,
+)
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.typing import HomeAssistantType, ConfigType
 
 from . import _LOGGER
-from .const import DOMAIN, PROTOCOL_DEFAULT, PROTOCOL_CMD_UPDATE, ATTR_MONITORED, \
-    DEFAULT_SCAN_INTERVAL, PROTOCOL_CMD_RECEIVE, CONF_DEVICE, CONF_ACCOUNT, CONF_DOMAINS
+from .const import (
+    DOMAIN,
+    PROTOCOL_DEFAULT,
+    PROTOCOL_CMD_UPDATE,
+    ATTR_MONITORED,
+    DEFAULT_SCAN_INTERVAL,
+    PROTOCOL_CMD_RECEIVE,
+    CONF_DEVICE,
+    CONF_ACCOUNT,
+    CONF_DOMAINS,
+)
 from .schemas import BASE_PLATFORM_SCHEMA, test_for_list_correspondence
 from .supported_protocols import SUPPORTED_PROTOCOLS
 
@@ -32,10 +53,20 @@ if TYPE_CHECKING:
 
 
 class HekrEntity(Entity):
-    def __init__(self, device_id: str, ent_type: str, name: str, config: Dict, update_interval: timedelta,
-                 init_enable: bool):
+    def __init__(
+        self,
+        device_id: str,
+        ent_type: str,
+        name: str,
+        config: Dict,
+        update_interval: timedelta,
+        init_enable: bool,
+    ):
         super().__init__()
-        _LOGGER.debug('Creating %s[%s] entity for device with ID "%s"' % (self.__class__.__name__, ent_type, device_id))
+        _LOGGER.debug(
+            'Creating %s[%s] entity for device with ID "%s"'
+            % (self.__class__.__name__, ent_type, device_id)
+        )
         self._device_id = device_id
         self._ent_type = ent_type
         self._name = name
@@ -51,26 +82,31 @@ class HekrEntity(Entity):
         return hash(self.unique_id)
 
     @property
-    def _data(self) -> 'HekrData':
+    def _data(self) -> "HekrData":
         return self.hass.data[DOMAIN]
 
     async def async_added_to_hass(self) -> None:
-        _LOGGER.debug('Entity %s added to HASS! Setting up callbacks.' % self)
+        _LOGGER.debug("Entity %s added to HASS! Setting up callbacks." % self)
         device_entities = self._data.device_entities.setdefault(self._device_id, [])
         device_entities.append(self)
         self._data.refresh_connections()
 
     async def async_will_remove_from_hass(self) -> None:
-        _LOGGER.debug('Entity %s removed from HomeAssistant' % self)
+        _LOGGER.debug("Entity %s removed from HomeAssistant" % self)
         device_entities = self._data.device_entities.get(self._device_id)
         if device_entities:
             device_entities.remove(self)
             self._data.refresh_connections()
 
     @classmethod
-    def create_entities(cls: Type['HekrEntity'], device_id: str, name: str,
-                        types: Optional[Union[bool, str, List[str]]],
-                        configs: Dict[str, dict], update_interval: timedelta):
+    def create_entities(
+        cls: Type["HekrEntity"],
+        device_id: str,
+        name: str,
+        types: Optional[Union[bool, str, List[str]]],
+        configs: Dict[str, dict],
+        update_interval: timedelta,
+    ):
         if types is True:
             init_enable = dict.fromkeys(configs.keys(), True)
         else:
@@ -92,23 +128,30 @@ class HekrEntity(Entity):
                     invalid_types = enabled_types - init_enable.keys()
 
                     if invalid_types:
-                        raise ValueError('Invalid sensor types: %s' % ', '.join(invalid_types))
+                        raise ValueError(
+                            "Invalid sensor types: %s" % ", ".join(invalid_types)
+                        )
 
                 init_enable.update(dict.fromkeys(enabled_types, True))
 
-        _LOGGER.debug('Create entities for device ID "%s" with name "%s" with initial states: %s'
-                      % (device_id, name, init_enable))
+        _LOGGER.debug(
+            'Create entities for device ID "%s" with name "%s" with initial states: %s'
+            % (device_id, name, init_enable)
+        )
 
-        return [cls(
-            device_id=device_id,
-            name=name + ' ' + configs[ent_type].get(ATTR_NAME, ent_type),
-            ent_type=ent_type,
-            config=configs[ent_type],
-            update_interval=update_interval,
-            init_enable=enabled
-        ) for ent_type, enabled in init_enable.items()]
+        return [
+            cls(
+                device_id=device_id,
+                name=name + " " + configs[ent_type].get(ATTR_NAME, ent_type),
+                ent_type=ent_type,
+                config=configs[ent_type],
+                update_interval=update_interval,
+                init_enable=enabled,
+            )
+            for ent_type, enabled in init_enable.items()
+        ]
 
-    async def handle_data_update(self, data: 'CommandData') -> None:
+    async def handle_data_update(self, data: "CommandData") -> None:
         """
         Handle data updates for the entity.
         Updates are handled by generated updaters via HekrData class. The :func:`HekrEntity.handle_data_update` method
@@ -116,19 +159,24 @@ class HekrEntity(Entity):
         :param data: Incoming data dictionary
         :type data: Dict[str, Any]
         """
-        _LOGGER.debug('Handling data update for %s entity [%s] with data: %s' % (
-            self.__class__.__name__,
-            self.entity_id,
-            data,
-        ))
+        _LOGGER.debug(
+            "Handling data update for %s entity [%s] with data: %s"
+            % (
+                self.__class__.__name__,
+                self.entity_id,
+                data,
+            )
+        )
 
         state_key = self._config.get(ATTR_STATE)
         if state_key:
             if state_key in data:
                 state = data[state_key]
             else:
-                _LOGGER.error('State "%s" for entity type "%s" not found in received data (%s)!'
-                              % (state_key, self._ent_type, data))
+                _LOGGER.error(
+                    'State "%s" for entity type "%s" not found in received data (%s)!'
+                    % (state_key, self._ent_type, data)
+                )
                 state = STATE_UNKNOWN
         else:
             state = STATE_OK
@@ -147,17 +195,25 @@ class HekrEntity(Entity):
                 if attribute in data:
                     attributes[attribute] = data[attribute]
                 else:
-                    _LOGGER.warning('Attribute "%s" for entity type "%s" not found in received data (%s)!'
-                                    % (attribute, self._ent_type, data))
+                    _LOGGER.warning(
+                        'Attribute "%s" for entity type "%s" not found in received data (%s)!'
+                        % (attribute, self._ent_type, data)
+                    )
                     attributes[attribute] = STATE_UNKNOWN
 
-        if attributes != self._attributes or state != self._state or not self._available:
+        if (
+            attributes != self._attributes
+            or state != self._state
+            or not self._available
+        ):
             self._available = True
             self._state = state
             self._attributes = attributes
             await self.async_update_ha_state(force_refresh=True)
 
-    def execute_protocol_command(self, protocol_command: Union[str, 'CommandData']) -> Union[bool, 'MessageID']:
+    def execute_protocol_command(
+        self, protocol_command: Union[str, "CommandData"]
+    ) -> Union[bool, "MessageID"]:
         command = self._config.get(protocol_command)
         if command is not None:
             arguments = None
@@ -166,10 +222,13 @@ class HekrEntity(Entity):
 
             return asyncio.run_coroutine_threadsafe(
                 self._data.devices[self._device_id].command(command, arguments),
-                self.hass.loop
+                self.hass.loop,
             ).result()
         else:
-            _LOGGER.error('%s attempted to execute unknown protocol command: %s' % (self, protocol_command))
+            _LOGGER.error(
+                "%s attempted to execute unknown protocol command: %s"
+                % (self, protocol_command)
+            )
             return False
 
     @property
@@ -206,7 +265,18 @@ class HekrEntity(Entity):
 
     @property
     def device_state_attributes(self) -> Optional[dict]:
-        return self._attributes
+        base_attributes = {}
+
+        attributes = self._attributes
+        if attributes:
+            base_attributes.update(attributes)
+
+        if ATTR_STATE_CLASS not in base_attributes:
+            state_class = self.state_class
+            if state_class is not None:
+                base_attributes[ATTR_STATE_CLASS] = state_class
+
+        return base_attributes
 
     @property
     def unique_id(self) -> Optional[str]:
@@ -228,6 +298,10 @@ class HekrEntity(Entity):
         return self._config.get(ATTR_DEVICE_CLASS, DEVICE_CLASS_NONE)
 
     @property
+    def state_class(self) -> Optional[str]:
+        return self._config.get(ATTR_STATE_CLASS)
+
+    @property
     def device_info(self) -> Optional[Dict[str, Any]]:
         return self._data.get_device_info_dict(self._device_id)
 
@@ -236,23 +310,32 @@ class HekrEntity(Entity):
         return self._init_enable
 
 
-async def _setup_entity(logger: 'logging.Logger', hass: HomeAssistantType, async_add_entities, config: ConfigType,
-                        protocol_key: str, config_key: str, entity_domain: str,
-                        entity_factory: Type['HekrEntity']):
+async def _setup_entity(
+    logger: "logging.Logger",
+    hass: HomeAssistantType,
+    async_add_entities,
+    config: ConfigType,
+    protocol_key: str,
+    config_key: str,
+    entity_domain: str,
+    entity_factory: Type["HekrEntity"],
+):
     from hekrapi import HekrAPIException
 
     protocol_id = config.get(CONF_PROTOCOL)
     protocol = SUPPORTED_PROTOCOLS[protocol_id]
 
     if protocol_key is not None and protocol_key not in protocol:
-        logger.error('Protocol "%s" does not support [%s] component, and therefore will be skipped.'
-                     % (protocol_id, entity_domain))
+        logger.error(
+            'Protocol "%s" does not support [%s] component, and therefore will be skipped.'
+            % (protocol_id, entity_domain)
+        )
         return True
 
     try:
         device_id = config[CONF_DEVICE_ID]
 
-        hekr_data: 'HekrData' = hass.data[DOMAIN]
+        hekr_data: "HekrData" = hass.data[DOMAIN]
         device = hekr_data.devices[device_id]
 
         update_interval = config.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
@@ -268,26 +351,42 @@ async def _setup_entity(logger: 'logging.Logger', hass: HomeAssistantType, async
         )
 
         if entities is None:
-            logger.warning('No entities added for device with ID "%s"' % device.device_id)
+            logger.warning(
+                'No entities added for device with ID "%s"' % device.device_id
+            )
             return False
 
-        _LOGGER.debug('Prepared entities: %s' % ', '.join([entity.name for entity in entities]))
+        _LOGGER.debug(
+            "Prepared entities: %s" % ", ".join([entity.name for entity in entities])
+        )
 
         async_add_entities(entities)
-        logger.debug('Adding %s(-s) complete on device with ID "%s"' % (entity_domain, device.device_id))
+        logger.debug(
+            'Adding %s(-s) complete on device with ID "%s"'
+            % (entity_domain, device.device_id)
+        )
 
         return True
 
     except HekrAPIException as e:
-        logger.exception('%s configuration failed due to API error: %s' % (entity_domain.capitalize(), e))
+        logger.exception(
+            "%s configuration failed due to API error: %s"
+            % (entity_domain.capitalize(), e)
+        )
     except ValueError as e:
-        logger.exception('%s configuration failed: %s' % (entity_domain.capitalize(), e))
+        logger.exception(
+            "%s configuration failed: %s" % (entity_domain.capitalize(), e)
+        )
 
     return False
 
 
-def create_platform_basics(logger: 'logging.Logger', entity_domain: str, entity_factory: Type['HekrEntity'],
-                           base_schema: vol.Schema):
+def create_platform_basics(
+    logger: "logging.Logger",
+    entity_domain: str,
+    entity_factory: Type["HekrEntity"],
+    base_schema: vol.Schema,
+):
     if entity_factory is None:
         entity_factory = HekrEntity
 
@@ -300,18 +399,27 @@ def create_platform_basics(logger: 'logging.Logger', entity_domain: str, entity_
             break
 
     if config_key is None:
-        raise ValueError('Entity domain "%s" is not supported for [%s] domain.' % (entity_domain, DOMAIN))
+        raise ValueError(
+            'Entity domain "%s" is not supported for [%s] domain.'
+            % (entity_domain, DOMAIN)
+        )
 
-    async def _async_setup_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry, async_add_devices):
+    async def _async_setup_entry(
+        hass: HomeAssistantType,
+        config_entry: config_entries.ConfigEntry,
+        async_add_devices,
+    ):
         conf = config_entry.data
         config_type = CONF_DEVICE if CONF_DEVICE in conf else CONF_ACCOUNT
-        hekr_data: 'HekrData' = hass.data[DOMAIN]
+        hekr_data: "HekrData" = hass.data[DOMAIN]
         item_config = conf[config_type]
 
         if config_type == CONF_DEVICE:
             device_id = item_config[CONF_DEVICE_ID]
             device_cfg = hekr_data.devices_config_entries[device_id]
-            _LOGGER.debug('Adding local device %s with config: %s' % (device_id, device_cfg))
+            _LOGGER.debug(
+                "Adding local device %s with config: %s" % (device_id, device_cfg)
+            )
             return await _setup_entity(
                 logger=logger,
                 hass=hass,
@@ -320,7 +428,7 @@ def create_platform_basics(logger: 'logging.Logger', entity_domain: str, entity_
                 config_key=config_key,
                 protocol_key=protocol_key,
                 entity_domain=entity_domain,
-                entity_factory=entity_factory
+                entity_factory=entity_factory,
             )
 
         elif config_type == CONF_ACCOUNT:
@@ -329,7 +437,10 @@ def create_platform_basics(logger: 'logging.Logger', entity_domain: str, entity_
             tasks = []
             for device_id, device in hekr_data.get_account_devices(account_id).items():
                 device_cfg = hekr_data.devices_config_entries[device_id]
-                _LOGGER.debug('Adding device %s for account %s with config: %s' % (device_id, account_id, device_cfg))
+                _LOGGER.debug(
+                    "Adding device %s for account %s with config: %s"
+                    % (device_id, account_id, device_cfg)
+                )
                 tasks.append(
                     _setup_entity(
                         logger=logger,
@@ -339,7 +450,7 @@ def create_platform_basics(logger: 'logging.Logger', entity_domain: str, entity_
                         config_key=config_key,
                         protocol_key=protocol_key,
                         entity_domain=entity_domain,
-                        entity_factory=entity_factory
+                        entity_factory=entity_factory,
                     )
                 )
 
@@ -347,56 +458,78 @@ def create_platform_basics(logger: 'logging.Logger', entity_domain: str, entity_
 
         return False
 
-    async def _async_setup_platform(hass: HomeAssistantType, config: ConfigType, *_, **__):
-        _LOGGER.error('Platform setup is deprecated! Please, convert your configuration to use component instead of '
-                      'platform. A persistent notification will be created with config for your particular device.')
+    async def _async_setup_platform(
+        hass: HomeAssistantType, config: ConfigType, *_, **__
+    ):
+        _LOGGER.error(
+            "Platform setup is deprecated! Please, convert your configuration to use component instead of "
+            "platform. A persistent notification will be created with config for your particular device."
+        )
 
         del config[CONF_PLATFORM]
 
-        from homeassistant.components.persistent_notification import DOMAIN, SERVICE_CREATE, ATTR_TITLE, ATTR_MESSAGE
+        from homeassistant.components.persistent_notification import (
+            DOMAIN,
+            SERVICE_CREATE,
+            ATTR_TITLE,
+            ATTR_MESSAGE,
+        )
 
         def timedelta_str(td: timedelta, offset: str) -> str:
             hours = td.seconds // 3600
             minutes = (td.seconds % 3600) // 60
             seconds = td.seconds % 60
 
-            return offset + ('\n'+offset).join([
-                "%s: %s" % replace
-                for replace in {
-                    "seconds": seconds,
-                    "minutes": minutes,
-                    "hours": hours,
-                    "days": td.days
-                }.items()
-                if replace[1] != 0
-            ])
+            return offset + ("\n" + offset).join(
+                [
+                    "%s: %s" % replace
+                    for replace in {
+                        "seconds": seconds,
+                        "minutes": minutes,
+                        "hours": hours,
+                        "days": td.days,
+                    }.items()
+                    if replace[1] != 0
+                ]
+            )
 
-        conversion_content = '```\nhekr:\n  devices:\n    - '
+        conversion_content = "```\nhekr:\n  devices:\n    - "
         default_values = {
             k: k.default()
             for k in BASE_PLATFORM_SCHEMA.keys()
             if not isinstance(k.default, vol.schema_builder.Undefined)
         }
-        conversion_content += '\n      '.join([
-            '%s: %s' % (k, '\n' + timedelta_str(v, ' '*8) if isinstance(v, timedelta) else v)
-            for k, v in config.items()
-            if default_values.get(k) != v
-        ])
-        conversion_content += '\n```'
+        conversion_content += "\n      ".join(
+            [
+                "%s: %s"
+                % (
+                    k,
+                    "\n" + timedelta_str(v, " " * 8) if isinstance(v, timedelta) else v,
+                )
+                for k, v in config.items()
+                if default_values.get(k) != v
+            ]
+        )
+        conversion_content += "\n```"
 
         hass.async_create_task(
-            hass.services.async_call(DOMAIN, SERVICE_CREATE, {
-                ATTR_TITLE: 'Hekr device %s' % config[CONF_DEVICE_ID],
-                ATTR_MESSAGE: 'Setting up Hekr devices using platforms is no longer supported. Consider switching to '
-                              'an integration setup via interface or YAML. To port your platform configuration to the '
-                              'new format, an entry has been provided for you to copy:\n' + conversion_content
-            })
+            hass.services.async_call(
+                DOMAIN,
+                SERVICE_CREATE,
+                {
+                    ATTR_TITLE: "Hekr device %s" % config[CONF_DEVICE_ID],
+                    ATTR_MESSAGE: "Setting up Hekr devices using platforms is no longer supported. Consider switching to "
+                    "an integration setup via interface or YAML. To port your platform configuration to the "
+                    "new format, an entry has been provided for you to copy:\n"
+                    + conversion_content,
+                },
+            )
         )
         return False
 
     _PLATFORM_SCHEMA = vol.All(
         base_schema.extend(BASE_PLATFORM_SCHEMA),
-        test_for_list_correspondence(config_key, protocol_key)
+        test_for_list_correspondence(config_key, protocol_key),
     )
 
     return _PLATFORM_SCHEMA, _async_setup_platform, _async_setup_entry
