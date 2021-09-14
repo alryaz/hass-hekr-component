@@ -1,15 +1,11 @@
 """ Basic Hekr protocol implementation based on Wisen app. """
 
-__all__ = [
-    'async_setup',
-    'async_setup_entry',
-    'async_unload_entry',
-    'CONFIG_SCHEMA',
-]
-
-__title__ = 'HomeAssistant Hekr Component'
-__version__ = '0.2.2'
-__author__ = 'Alexander Ryazanov <alryaz@xavux.com>'
+__all__ = (
+    "async_setup",
+    "async_setup_entry",
+    "async_unload_entry",
+    "CONFIG_SCHEMA",
+)
 
 import asyncio
 import logging
@@ -23,7 +19,14 @@ from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.typing import HomeAssistantType
 
-from .const import DOMAIN, CONF_DEVICES, CONF_ACCOUNTS, CONF_USE_MODEL_FROM_PROTOCOL, CONF_DEVICE, CONF_ACCOUNT
+from .const import (
+    DOMAIN,
+    CONF_DEVICES,
+    CONF_ACCOUNTS,
+    CONF_USE_MODEL_FROM_PROTOCOL,
+    CONF_DEVICE,
+    CONF_ACCOUNT,
+)
 from .schemas import CONFIG_SCHEMA
 from .supported_protocols import SUPPORTED_PROTOCOLS
 
@@ -36,12 +39,16 @@ _LOGGER = logging.getLogger(__name__)
 
 
 @callback
-def _find_existing_entry(hass: HomeAssistantType, setup_type: str, item_id: str) \
-        -> Optional[config_entries.ConfigEntry]:
+def _find_existing_entry(
+    hass: HomeAssistantType, setup_type: str, item_id: str
+) -> Optional[config_entries.ConfigEntry]:
     existing_entries = hass.config_entries.async_entries(DOMAIN)
     item_id_key = CONF_DEVICE_ID if setup_type == CONF_DEVICE else CONF_USERNAME
     for config_entry in existing_entries:
-        if setup_type in config_entry.data and config_entry.data[setup_type][item_id_key] == item_id:
+        if (
+            setup_type in config_entry.data
+            and config_entry.data[setup_type][item_id_key] == item_id
+        ):
             return config_entry
 
 
@@ -53,7 +60,7 @@ async def async_setup(hass: HomeAssistantType, yaml_config):
 
     from .hekr_data import HekrData
 
-    hekr_data_obj: 'HekrData' = HekrData(hass)
+    hekr_data_obj: "HekrData" = HekrData(hass)
     hekr_data_obj.use_model_from_protocol = domain_config[CONF_USE_MODEL_FROM_PROTOCOL]
 
     hass.data[DOMAIN] = hekr_data_obj
@@ -71,13 +78,19 @@ async def async_setup(hass: HomeAssistantType, yaml_config):
             if existing_entry:
                 if existing_entry.source == config_entries.SOURCE_IMPORT:
                     hekr_data_obj.devices_config_yaml[device_id] = device_cfg
-                    _LOGGER.debug('Skipping existing import binding')
+                    _LOGGER.debug("Skipping existing import binding")
                 else:
-                    _LOGGER.warning('YAML config for device %s is overridden by another config entry!', device_id)
+                    _LOGGER.warning(
+                        f"YAML config for device {device_id} is "
+                        f"overridden by another config entry!"
+                    )
                 continue
 
             if device_id in hekr_data_obj.devices_config_yaml:
-                _LOGGER.warning('Device with ID "%s" set up multiple times. Check your configuration.', device_id)
+                _LOGGER.warning(
+                    f"Device {device_id} set up multiple "
+                    f"times. Please, check your configuration."
+                )
                 continue
 
             _LOGGER.debug('Adding device entry with ID "%s"', device_id)
@@ -104,15 +117,21 @@ async def async_setup(hass: HomeAssistantType, yaml_config):
             if existing_entry:
                 if existing_entry.source == config_entries.SOURCE_IMPORT:
                     hekr_data_obj.accounts_config_yaml[account_id] = account_cfg
-                    _LOGGER.debug('Skipping existing import binding')
+                    _LOGGER.debug("Skipping existing import binding")
                 else:
-                    _LOGGER.warning('YAML config for device %s is overridden by another config entry!', account_id)
+                    _LOGGER.warning(
+                        "YAML config for device %s is overridden by another config entry!",
+                        account_id,
+                    )
                 continue
 
             if account_id in hekr_data_obj.accounts_config_yaml:
-                _LOGGER.warning('Account "%s" set up multiple times. Check your configuration.', account_id)
+                _LOGGER.warning(
+                    'Account "%s" set up multiple times. Check your configuration.',
+                    account_id,
+                )
                 continue
-            
+
             _LOGGER.debug('Adding account entry with username "%s"', account_id)
 
             hekr_data_obj.accounts_config_yaml[account_id] = account_cfg
@@ -127,10 +146,12 @@ async def async_setup(hass: HomeAssistantType, yaml_config):
     return True
 
 
-async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry):
+async def async_setup_entry(
+    hass: HomeAssistantType, config_entry: config_entries.ConfigEntry
+):
     conf = config_entry.data
 
-    hekr_data_obj: 'HekrData' = hass.data.get(DOMAIN)
+    hekr_data_obj: "HekrData" = hass.data.get(DOMAIN)
 
     if hekr_data_obj is None:
         from .hekr_data import HekrData
@@ -149,7 +170,10 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entrie
             if config_entry.source == config_entries.SOURCE_IMPORT:
                 device_cfg = hekr_data_obj.devices_config_yaml.get(device_id)
                 if not device_cfg:
-                    _LOGGER.info('Removing entry %s after removal from YAML configuration.', config_entry.entry_id)
+                    _LOGGER.info(
+                        "Removing entry %s after removal from YAML configuration.",
+                        config_entry.entry_id,
+                    )
                     hass.async_create_task(
                         hass.config_entries.async_remove(config_entry.entry_id)
                     )
@@ -164,19 +188,31 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entrie
                     account_id = other_conf[CONF_ACCOUNT][CONF_USERNAME]
                     account_devices = hekr_data_obj.get_account_devices(account_id)
                     if device_id in account_devices:
-                        _LOGGER.info('Detected local config override for device "%s" with account "%s" set up', device_id, account_id)
+                        _LOGGER.info(
+                            'Detected local config override for device "%s" with account "%s" set up',
+                            device_id,
+                            account_id,
+                        )
 
                         cancel_cloud_listener = True
                         for other_device_id in account_devices.keys():
                             if other_device_id != device_id:
-                                _LOGGER.debug('Detected other devices on account "%s", will not cancel listener.', account_id)
+                                _LOGGER.debug(
+                                    'Detected other devices on account "%s", will not cancel listener.',
+                                    account_id,
+                                )
                                 cancel_cloud_listener = False
                                 break
 
                         if cancel_cloud_listener:
-                            device: Optional['Device'] = hekr_data_obj.devices.get(device_id)
+                            device: Optional["Device"] = hekr_data_obj.devices.get(
+                                device_id
+                            )
                             if device and device.connector:
-                                if device.connector.listener and device.connector.listener.is_running:
+                                if (
+                                    device.connector.listener
+                                    and device.connector.listener.is_running
+                                ):
                                     device.connector.listener.stop()
 
                                 await device.close_connection()
@@ -191,7 +227,7 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entrie
                 await device.open_connection()
                 hekr_data_obj.refresh_connections()
             except socket.gaierror as e:
-                _LOGGER.error('Invalid hostname or address provided (error: %s)', e)
+                _LOGGER.error("Invalid hostname or address provided (error: %s)", e)
                 raise ConfigEntryNotReady
 
             # await hekr_data.create_device_registry_entry(device, config_entry.entry_id)
@@ -208,7 +244,10 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entrie
             if config_entry.source == config_entries.SOURCE_IMPORT:
                 account_cfg = hekr_data_obj.accounts_config_yaml.get(account_id)
                 if account_cfg is None:
-                    _LOGGER.info('Removing entry %s after removal from YAML configuration.' % config_entry.entry_id)
+                    _LOGGER.info(
+                        "Removing entry %s after removal from YAML configuration."
+                        % config_entry.entry_id
+                    )
                     hass.async_create_task(
                         hass.config_entries.async_remove(config_entry.entry_id)
                     )
@@ -218,7 +257,9 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entrie
             added_devices = await hekr_data_obj.update_account(account_id)
 
             if not added_devices:
-                _LOGGER.warning('No devices found in account "%s". Not adding.', account_id)
+                _LOGGER.warning(
+                    'No devices found in account "%s". Not adding.', account_id
+                )
                 await hekr_data_obj.cleanup_account(account_id)
                 return False
 
@@ -227,27 +268,36 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entrie
             hekr_data_obj.setup_entities(config_entry)
 
         else:
-            _LOGGER.error('Unknown configuration format for entry ID %s, must remove' % config_entry.entry_id)
+            _LOGGER.error(
+                "Unknown configuration format for entry ID %s, must remove"
+                % config_entry.entry_id
+            )
             hass.async_create_task(
                 hass.config_entries.async_remove(config_entry.entry_id)
             )
             return False
 
     except AuthenticationFailedException:
-        _LOGGER.exception('Failed to authenticate and update devices from account. Maybe password is invalid?')
+        _LOGGER.exception(
+            "Failed to authenticate and update devices from account. Maybe password is invalid?"
+        )
         return False
 
     except HekrAPIException:
-        _LOGGER.exception("API exception while setting up config entry %s" % config_entry.entry_id)
+        _LOGGER.exception(
+            "API exception while setting up config entry %s" % config_entry.entry_id
+        )
         return False
 
     return True
 
 
-async def async_unload_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry):
+async def async_unload_entry(
+    hass: HomeAssistantType, config_entry: config_entries.ConfigEntry
+):
     _LOGGER.debug('Unloading Hekr config entry with ID "%s"' % config_entry.entry_id)
 
-    hekr_data_obj: 'HekrData' = hass.data[DOMAIN]
+    hekr_data_obj: "HekrData" = hass.data[DOMAIN]
 
     try:
         await asyncio.wait(hekr_data_obj.unload_entities(config_entry))
@@ -255,7 +305,7 @@ async def async_unload_entry(hass: HomeAssistantType, config_entry: config_entri
         devices_to_unload = hekr_data_obj.collect_devices_for_entry(config_entry)
 
         for device_id in devices_to_unload:
-            _LOGGER.debug('Unloaded device from data: %s', device_id)
+            _LOGGER.debug("Unloaded device from data: %s", device_id)
             # await hekr_data.delete_device_registry_entry(device_id)
             await hekr_data_obj.cleanup_device(device_id, with_refresh=False)
 
@@ -266,6 +316,8 @@ async def async_unload_entry(hass: HomeAssistantType, config_entry: config_entri
             await hekr_data_obj.cleanup_account(account_id)
 
     except HekrAPIException:
-        _LOGGER.exception('Exception occurred while unloading entry %s' % config_entry.entry_id)
+        _LOGGER.exception(
+            "Exception occurred while unloading entry %s" % config_entry.entry_id
+        )
 
     return True
