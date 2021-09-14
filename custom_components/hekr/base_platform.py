@@ -326,7 +326,7 @@ async def _setup_entity(
     protocol = SUPPORTED_PROTOCOLS[protocol_id]
 
     if protocol_key is not None and protocol_key not in protocol:
-        logger.error(
+        logger.debug(
             'Protocol "%s" does not support [%s] component, and therefore will be skipped.'
             % (protocol_id, entity_domain)
         )
