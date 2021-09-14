@@ -117,10 +117,13 @@ hekr:
 
 ![Loaded switches for power socket protocol](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_socket/switches.png)
 
+**[Device](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_socket/device.jpg) | [Board picture](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_socket/board.jpg)**
 <!--_(more screenshots available at: [images/power_socket](images/power_socket))_-->
 
 ### Supported devices
-- CZ-05 (??? Information pending)
+- SK-B-03/16A/EU
+- 7h sevenON elec
+- Sockets that identify themselves as CZ-05
 
 ### Example configuration
 ```yaml
