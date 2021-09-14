@@ -113,6 +113,30 @@ hekr:
         - main_power
 ```
 
+## Power socket protocol: `power_socket`
+
+![Loaded switches for power socket protocol](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_socket/switches.png)
+
+<!--_(more screenshots available at: [images/power_socket](images/power_socket))_-->
+
+### Supported devices
+- CZ-05 (??? Information pending)
+
+### Example configuration
+```yaml
+hekr:
+  devices:
+    - host: tv-power-socket.lan
+      device_id: ESP_2M_AABBCCDDEEFF
+      control_key: 202cb962ac59075b964b07152d234b70
+      protocol: power_socket
+```
+
+In this state, the component will generate a single switch (`main_power`) obtained via a
+single `Quary` command.
+
+<!-- Unfortunately, they named it Quary, not Query, and I'm equally irked by this -->
+
 ## Fetching `device_id` and `control_key` for local setup
 The following steps (evidently) assume you already paired target device using Wisen.
 
