@@ -156,7 +156,7 @@ The easiest way to accomplish this is to begin an integration flow with `account
 Tick the box `Create notification with device info` during setup, and a persistent notification
 will appear containing compatible YAML config.
 
-### _Wisen_ application
+### _Wisen_ application   (Only Android ! Doesn't work with Apple App anymore)
 To obtain `device_id` and `control_key`:
 - Open _Wisen_ application
 - Open sidebar menu (on the left)
