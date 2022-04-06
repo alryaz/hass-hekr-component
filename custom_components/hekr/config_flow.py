@@ -1,19 +1,38 @@
 """Config flow for Hekr."""
 import logging
-from datetime import timedelta
 from typing import Optional, Dict, Tuple, Any
 
 from homeassistant import config_entries
-from homeassistant.const import CONF_HOST, CONF_PORT, CONF_PROTOCOL, CONF_DEVICE_ID, CONF_NAME, CONF_SCAN_INTERVAL, \
-    CONF_TYPE, CONF_USERNAME, CONF_PASSWORD
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PORT,
+    CONF_PROTOCOL,
+    CONF_DEVICE_ID,
+    CONF_NAME,
+    CONF_SCAN_INTERVAL,
+    CONF_TYPE,
+    CONF_USERNAME,
+    CONF_PASSWORD,
+)
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, PROTOCOL_NAME, CONF_DEVICE, CONF_ACCOUNT, DEFAULT_NAME_DEVICE, PROTOCOL_PORT, CONF_DOMAINS, \
-    CONF_CONTROL_KEY, DEFAULT_SCAN_INTERVAL, PROTOCOL_DEFAULT, CONF_DUMP_DEVICE_CREDENTIALS, PROTOCOL_DEFINITION
+from .const import (
+    DOMAIN,
+    PROTOCOL_NAME,
+    CONF_DEVICE,
+    CONF_ACCOUNT,
+    DEFAULT_NAME_DEVICE,
+    PROTOCOL_PORT,
+    CONF_DOMAINS,
+    CONF_CONTROL_KEY,
+    DEFAULT_SCAN_INTERVAL,
+    PROTOCOL_DEFAULT,
+    CONF_DUMP_DEVICE_CREDENTIALS,
+    PROTOCOL_DEFINITION,
+)
 from .supported_protocols import SUPPORTED_PROTOCOLS
 
 _LOGGER = logging.getLogger(__name__)
-
 
 ConfigFlowCommandType = Dict[str, Any]
 
@@ -45,18 +64,23 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         schema_device[vol.Required(CONF_DEVICE_ID)] = str
         schema_device[vol.Required(CONF_CONTROL_KEY)] = str
         schema_device[vol.Required(CONF_HOST)] = str
-        schema_device[vol.Required(CONF_PROTOCOL)] = vol.In({
-            p_id: p_def.get(PROTOCOL_NAME, p_id)
-            for p_id, p_def in SUPPORTED_PROTOCOLS.items()
-        })
+        schema_device[vol.Required(CONF_PROTOCOL)] = vol.In(
+            {p_id: p_def.get(PROTOCOL_NAME, p_id) for p_id, p_def in SUPPORTED_PROTOCOLS.items()}
+        )
         schema_device[vol.Optional(CONF_PORT)] = str
-        schema_device[vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL.seconds)] = int
+        schema_device[
+            vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL.seconds)
+        ] = int
         self.schema_device = vol.Schema(schema_device)
 
-        self.schema_additional = lambda protocol_id, protocol_key: vol.Schema({
-            vol.Optional(protocol_id + '_' + ent_type, default=ent_config.get(PROTOCOL_DEFAULT)): bool
-            for ent_type, ent_config in SUPPORTED_PROTOCOLS[protocol_id][protocol_key].items()
-        })
+        self.schema_additional = lambda protocol_id, protocol_key: vol.Schema(
+            {
+                vol.Optional(
+                    protocol_id + "_" + ent_type, default=ent_config.get(PROTOCOL_DEFAULT)
+                ): bool
+                for ent_type, ent_config in SUPPORTED_PROTOCOLS[protocol_id][protocol_key].items()
+            }
+        )
 
         schema_account = OrderedDict()
         schema_account[vol.Required(CONF_USERNAME)] = str
@@ -72,14 +96,18 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         :param item: Attribute
         :return:
         """
-        if item.startswith('async_step_' + self.prefix_dynamic_config):
+        if item.startswith("async_step_" + self.prefix_dynamic_config):
             config_key = item[22:]
             if config_key in CONF_DOMAINS:
-                return lambda *args, **kwargs: self._additional_config_step(config_key, *args, **kwargs)
+                return lambda *args, **kwargs: self._additional_config_step(
+                    config_key, *args, **kwargs
+                )
 
         raise AttributeError("Could not find attribute with name %s" % item)
 
-    async def _additional_config_step(self, config_key: str, user_input=None) -> ConfigFlowCommandType:
+    async def _additional_config_step(
+        self, config_key: str, user_input=None
+    ) -> ConfigFlowCommandType:
         """
         Process additional config step.
         :param config_key: Configuration key (set from __getattr__)
@@ -90,24 +118,26 @@ class HekrFlowHandler(config_entries.ConfigFlow):
 
         protocol_id, protocol = self._current_protocol
         if protocol_id is None:
-            _LOGGER.warning('Flow error due to protocol')
+            _LOGGER.warning("Flow error due to protocol")
             return self.async_abort(reason="protocol_not_set")
 
         if user_input is None:
-            _LOGGER.debug('Showing form for %s' % entity_domain)
+            _LOGGER.debug("Showing form for %s" % entity_domain)
             return self.async_show_form(
                 step_id=self.prefix_dynamic_config + config_key,
                 data_schema=self.schema_additional(protocol_id, protocol_key),
                 description_placeholders={
                     "entity_domain": entity_domain,
                     "device_name": self._current_config[CONF_NAME],
-                    "protocol_name": protocol.get(PROTOCOL_NAME) or protocol_id
+                    "protocol_name": protocol.get(PROTOCOL_NAME) or protocol_id,
                 },
             )
 
         # Retrieve list of selected items for platform
         prefix_len = len(protocol_id) + 1
-        selected_items = [option[prefix_len:] for option in user_input if user_input[option] is True]
+        selected_items = [
+            option[prefix_len:] for option in user_input if user_input[option] is True
+        ]
 
         # Save selected platform items to current configuration
         self._current_config[config_key] = selected_items or False
@@ -125,19 +155,19 @@ class HekrFlowHandler(config_entries.ConfigFlow):
                 continue
 
             if conf_key not in self._current_config:
-                step_attr = 'async_step_' + self.prefix_dynamic_config + conf_key
+                step_attr = "async_step_" + self.prefix_dynamic_config + conf_key
                 return await getattr(self, step_attr)()
 
         return await self._create_entry(self._current_config, setup_type=CONF_DEVICE)
 
     async def _create_entry(self, config: ConfigType, setup_type: str, from_import: bool = False):
-        _LOGGER.debug('Creating entry: %s' % config)
+        _LOGGER.debug("Creating entry: %s" % config)
 
         save_config = {**config}
 
         if setup_type == CONF_DEVICE:
             if await self._check_entry_exists(config[CONF_DEVICE_ID], CONF_DEVICE):
-                _LOGGER.info('Device with config %s already exists, not adding' % save_config)
+                _LOGGER.info("Device with config %s already exists, not adding" % save_config)
                 return self.async_abort(reason="device_already_exists")
 
             config_name = config.get(CONF_NAME, config.get(CONF_DEVICE_ID))
@@ -146,7 +176,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
             else:
                 save_config[CONF_NAME] = config_name
 
-            _LOGGER.debug('Device entry: %s' % save_config)
+            _LOGGER.debug("Device entry: %s" % save_config)
 
             return self.async_create_entry(
                 title=config_name,
@@ -155,10 +185,10 @@ class HekrFlowHandler(config_entries.ConfigFlow):
 
         elif setup_type == CONF_ACCOUNT:
             if await self._check_entry_exists(config[CONF_USERNAME], CONF_ACCOUNT):
-                _LOGGER.info('Account with config %s already exists, not adding' % save_config)
+                _LOGGER.info("Account with config %s already exists, not adding" % save_config)
                 return self.async_abort(reason="account_already_exists")
 
-            _LOGGER.debug('Account entry: %s' % save_config)
+            _LOGGER.debug("Account entry: %s" % save_config)
 
             if from_import:
                 save_config = {CONF_USERNAME: config[CONF_USERNAME]}
@@ -168,7 +198,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
                 data={CONF_ACCOUNT: save_config},
             )
 
-        _LOGGER.error('Unknown config type in configuration: %s' % config)
+        _LOGGER.error("Unknown config type in configuration: %s" % config)
         return self.async_abort(reason="unknown_config_type")
 
     async def _check_entry_exists(self, item_id: str, setup_type: str):
@@ -201,7 +231,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         """
         if user_input is None:
             return self.async_show_form(step_id="user", data_schema=self.schema_user)
-        
+
         if user_input[CONF_TYPE] == CONF_ACCOUNT:
             return await self.async_step_account()
 
@@ -216,27 +246,26 @@ class HekrFlowHandler(config_entries.ConfigFlow):
 
         # Show form on no input
         if user_input is None:
-            return self.async_show_form(
-                step_id="device",
-                data_schema=self.schema_device
-            )
+            return self.async_show_form(step_id="device", data_schema=self.schema_device)
 
         device_id = user_input[CONF_DEVICE_ID]
 
         # Check if entry with given device ID already exists
         if await self._check_entry_exists(device_id, CONF_DEVICE):
-            _LOGGER.info('Device with config %s already exists, not adding' % user_input)
+            _LOGGER.info("Device with config %s already exists, not adding" % user_input)
             return self.async_abort(reason="device_already_exists")
 
         # Check whether specified protocol is under the supported list
         protocol_id = user_input[CONF_PROTOCOL]
         if protocol_id not in SUPPORTED_PROTOCOLS:
-            _LOGGER.warning('Unsupported protocol "%s" provided during config for device "%s".'
-                            % (user_input[CONF_DEVICE_ID], protocol_id))
+            _LOGGER.warning(
+                'Unsupported protocol "%s" provided during config for device "%s".'
+                % (user_input[CONF_DEVICE_ID], protocol_id)
+            )
             return self.async_show_form(
                 step_id="device",
                 data_schema=self.schema_device,
-                errors={CONF_PROTOCOL: "protocol_unsupported"}
+                errors={CONF_PROTOCOL: "protocol_unsupported"},
             )
 
         # Retrieve necessary protocol information
@@ -245,20 +274,20 @@ class HekrFlowHandler(config_entries.ConfigFlow):
 
         # Check whether user didn't provide a port, and query the protocol for one instead
         if not user_input.get(CONF_PORT) and protocol.get(PROTOCOL_PORT) is None:
-            _LOGGER.warning('No port provided for device %s; protocol %s does not define default port.'
-                            % (user_input[CONF_DEVICE_ID], protocol_id))
+            _LOGGER.warning(
+                "No port provided for device %s; protocol %s does not define default port."
+                % (user_input[CONF_DEVICE_ID], protocol_id)
+            )
             return self.async_show_form(
                 step_id="device",
                 data_schema=self.schema_device,
-                errors={CONF_PORT: "protocol_no_port"}
+                errors={CONF_PORT: "protocol_no_port"},
             )
 
         # Generate default name for device if none provided
         if not user_input.get(CONF_NAME):
             user_input[CONF_NAME] = DEFAULT_NAME_DEVICE.format(
-                host=user_input[CONF_HOST],
-                device_id=device_id,
-                protocol_name=protocol_name
+                host=user_input[CONF_HOST], device_id=device_id, protocol_name=protocol_name
             )
 
         # Save current config state
@@ -277,7 +306,10 @@ class HekrFlowHandler(config_entries.ConfigFlow):
             return self.async_show_form(step_id="account", data_schema=self.schema_account)
 
         if await self._check_entry_exists(user_input[CONF_USERNAME], CONF_ACCOUNT):
-            _LOGGER.info('Account with username "%s" already exists, not adding.' % user_input[CONF_USERNAME])
+            _LOGGER.info(
+                'Account with username "%s" already exists, not adding.'
+                % user_input[CONF_USERNAME]
+            )
             return self.async_abort(reason="account_already_exists")
 
         from hekrapi.exceptions import HekrAPIException, AuthenticationFailedException
@@ -292,22 +324,23 @@ class HekrFlowHandler(config_entries.ConfigFlow):
             devices_info = await account.get_devices()
 
         except AuthenticationFailedException:
-            return self.async_show_form(step_id="account", data_schema=self.schema_account, errors={
-                "base": "account_invalid_credentials",
-            })
+            return self.async_show_form(
+                step_id="account",
+                data_schema=self.schema_account,
+                errors={
+                    "base": "account_invalid_credentials",
+                },
+            )
 
         except HekrAPIException as e:
             return self.async_abort(
                 reason="unknown_error",
-                description_placeholders={
-                    "class": e.__class__.__name__,
-                    "content": str(e)
-                }
+                description_placeholders={"class": e.__class__.__name__, "content": str(e)},
             )
 
         if user_input[CONF_DUMP_DEVICE_CREDENTIALS]:
             # Clean user_input to prevent credentials dumping directive from saving to config
-            _LOGGER.debug('Selected account credentials dump')
+            _LOGGER.debug("Selected account credentials dump")
             del user_input[CONF_DUMP_DEVICE_CREDENTIALS]
 
             # Get all supported protocols
@@ -320,54 +353,61 @@ class HekrFlowHandler(config_entries.ConfigFlow):
             supported_protocols_vals = list(supported_protocols.values())
 
             # Update devices from account (match them with supported protocols)
-            await account.update_devices(
-                devices_info,
-                protocols=supported_protocols_vals
-            )
+            await account.update_devices(devices_info, protocols=supported_protocols_vals)
 
             if account.devices:
                 # Create list for looking up protocol ID's
                 supported_protocols_keys = list(supported_protocols.keys())
 
                 # Generate placeholder for every device
-                placeholder_text = 'hekr:\n  devices:\n' + '\n\n'.join([
-                    f"  - {CONF_DEVICE_ID}: {d.device_id}\n"
-                    f"    {CONF_NAME}: {d.device_name}\n"
-                    f"    {CONF_CONTROL_KEY}: {d.control_key}\n"
-                    f"    {CONF_HOST}: {d.lan_address}\n"
-                    f"    {CONF_PROTOCOL}: {supported_protocols_keys[supported_protocols_vals.index(d.protocol)]}\n"
-                    f"    # device is {'online' if d.is_online else 'offline'}\n"
-                    for device_id, d in account.devices.items()
-                    if d.protocol in supported_protocols_vals
-                ])
+                placeholder_text = "hekr:\n  devices:\n" + "\n\n".join(
+                    [
+                        f"  - {CONF_DEVICE_ID}: {d.device_id}\n"
+                        f"    {CONF_NAME}: {d.device_name}\n"
+                        f"    {CONF_CONTROL_KEY}: {d.control_key}\n"
+                        f"    {CONF_HOST}: {d.lan_address}\n"
+                        f"    {CONF_PROTOCOL}: {supported_protocols_keys[supported_protocols_vals.index(d.protocol)]}\n"
+                        f"    # device is {'online' if d.is_online else 'offline'}\n"
+                        for device_id, d in account.devices.items()
+                        if d.protocol in supported_protocols_vals
+                    ]
+                )
 
                 # Dump a log message with configuration
-                _LOGGER.info(f'Hekr Account with username "{username}" yielded {len(account.devices)} devices. '
-                             f'The following configuration was prepared for you to insert into `configuration.yaml`:'
-                             f'\n\n' + placeholder_text)
+                _LOGGER.info(
+                    f'Hekr Account with username "{username}" yielded {len(account.devices)} devices. '
+                    f"The following configuration was prepared for you to insert into `configuration.yaml`:"
+                    f"\n\n" + placeholder_text
+                )
 
                 # Prepare message with Markdown syntax
-                notification_message = 'Device configurations for YAML:\n```yaml\n' + placeholder_text + '```'
+                notification_message = (
+                    "Device configurations for YAML:\n```yaml\n" + placeholder_text + "```"
+                )
 
             else:
                 # Devices not found, notify user about it
-                notification_message = ('Devices for current account not found. Configuration is kept '
-                                        'for future use, however to retrieve device configuration '
-                                        'after adding a device to your account, you will have to'
-                                        're-run account configuration again.')
+                notification_message = (
+                    "Devices for current account not found. Configuration is kept "
+                    "for future use, however to retrieve device configuration "
+                    "after adding a device to your account, you will have to"
+                    "re-run account configuration again."
+                )
 
             # Create notification for retrieved devices state
             from homeassistant.components import persistent_notification
+
+            # @TODO: this is a deprecated service call
             await self.hass.services.async_call(
                 persistent_notification.DOMAIN,
                 persistent_notification.SERVICE_CREATE,
                 {
-                    persistent_notification.ATTR_TITLE: f'Hekr: Configurations ({username})',
-                    persistent_notification.ATTR_NOTIFICATION_ID: f'hekr_device_config_{username}',
+                    persistent_notification.ATTR_TITLE: f"Hekr: Configurations ({username})",
+                    persistent_notification.ATTR_NOTIFICATION_ID: f"hekr_device_config_{username}",
                     persistent_notification.ATTR_MESSAGE: notification_message,
                 },
                 blocking=True,
-                limit=None
+                limit=None,
             )
 
         # Account cleanup
@@ -376,7 +416,9 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         # Finalize with entry creation
         return await self._create_entry(user_input, CONF_ACCOUNT)
 
-    async def async_step_import(self, user_input: Optional[ConfigType] = None) -> ConfigFlowCommandType:
+    async def async_step_import(
+        self, user_input: Optional[ConfigType] = None
+    ) -> ConfigFlowCommandType:
         """
         Step IMPORT. Import configuration from YAML
         Save only setup type and identifier (`username` for accounts, `device_id` for devices).
@@ -385,13 +427,13 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         :return: Config flow command
         """
         if user_input is None:
-            _LOGGER.error('Called import step without configuration')
+            _LOGGER.error("Called import step without configuration")
             return self.async_abort("empty_configuration_import")
 
         # Detect setup type based on available keys
         setup_type = CONF_DEVICE if CONF_DEVICE in user_input else CONF_ACCOUNT
 
-        _LOGGER.debug('Importing config entry for %s' % setup_type)
+        _LOGGER.debug("Importing config entry for %s" % setup_type)
 
         # Finalize with entry creation
         return await self._create_entry(user_input[setup_type], setup_type, from_import=True)

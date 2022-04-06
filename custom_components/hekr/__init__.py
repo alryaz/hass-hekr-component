@@ -1,4 +1,4 @@
-""" Basic Hekr protocol implementation based on Wisen app. """
+"""Basic Hekr protocol implementation based on Wisen app."""
 
 __all__ = (
     "async_setup",
@@ -146,9 +146,7 @@ async def async_setup(hass: HomeAssistantType, yaml_config):
     return True
 
 
-async def async_setup_entry(
-    hass: HomeAssistantType, config_entry: config_entries.ConfigEntry
-):
+async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry):
     conf = config_entry.data
 
     hekr_data_obj: "HekrData" = hass.data.get(DOMAIN)
@@ -174,9 +172,7 @@ async def async_setup_entry(
                         "Removing entry %s after removal from YAML configuration.",
                         config_entry.entry_id,
                     )
-                    hass.async_create_task(
-                        hass.config_entries.async_remove(config_entry.entry_id)
-                    )
+                    hass.async_create_task(hass.config_entries.async_remove(config_entry.entry_id))
                     return False
 
             for other_config_entry in existing_entries:
@@ -189,25 +185,22 @@ async def async_setup_entry(
                     account_devices = hekr_data_obj.get_account_devices(account_id)
                     if device_id in account_devices:
                         _LOGGER.info(
-                            'Detected local config override for device "%s" with account "%s" set up',
-                            device_id,
-                            account_id,
+                            f'Detected local config override for device "{device_id}"'
+                            f' with account "{account_id}" set up'
                         )
 
                         cancel_cloud_listener = True
                         for other_device_id in account_devices.keys():
                             if other_device_id != device_id:
                                 _LOGGER.debug(
-                                    'Detected other devices on account "%s", will not cancel listener.',
-                                    account_id,
+                                    f"Detected other devices on account"
+                                    f' "{account_id}", will not cancel listener.',
                                 )
                                 cancel_cloud_listener = False
                                 break
 
                         if cancel_cloud_listener:
-                            device: Optional["Device"] = hekr_data_obj.devices.get(
-                                device_id
-                            )
+                            device: Optional["Device"] = hekr_data_obj.devices.get(device_id)
                             if device and device.connector:
                                 if (
                                     device.connector.listener
@@ -248,18 +241,14 @@ async def async_setup_entry(
                         "Removing entry %s after removal from YAML configuration."
                         % config_entry.entry_id
                     )
-                    hass.async_create_task(
-                        hass.config_entries.async_remove(config_entry.entry_id)
-                    )
+                    hass.async_create_task(hass.config_entries.async_remove(config_entry.entry_id))
                     return False
 
             hekr_data_obj.create_account(account_cfg)
             added_devices = await hekr_data_obj.update_account(account_id)
 
             if not added_devices:
-                _LOGGER.warning(
-                    'No devices found in account "%s". Not adding.', account_id
-                )
+                _LOGGER.warning('No devices found in account "%s". Not adding.', account_id)
                 await hekr_data_obj.cleanup_account(account_id)
                 return False
 
@@ -269,12 +258,9 @@ async def async_setup_entry(
 
         else:
             _LOGGER.error(
-                "Unknown configuration format for entry ID %s, must remove"
-                % config_entry.entry_id
+                "Unknown configuration format for entry ID %s, must remove" % config_entry.entry_id
             )
-            hass.async_create_task(
-                hass.config_entries.async_remove(config_entry.entry_id)
-            )
+            hass.async_create_task(hass.config_entries.async_remove(config_entry.entry_id))
             return False
 
     except AuthenticationFailedException:
@@ -284,17 +270,13 @@ async def async_setup_entry(
         return False
 
     except HekrAPIException:
-        _LOGGER.exception(
-            "API exception while setting up config entry %s" % config_entry.entry_id
-        )
+        _LOGGER.exception("API exception while setting up config entry %s" % config_entry.entry_id)
         return False
 
     return True
 
 
-async def async_unload_entry(
-    hass: HomeAssistantType, config_entry: config_entries.ConfigEntry
-):
+async def async_unload_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry):
     _LOGGER.debug('Unloading Hekr config entry with ID "%s"' % config_entry.entry_id)
 
     hekr_data_obj: "HekrData" = hass.data[DOMAIN]
@@ -316,8 +298,6 @@ async def async_unload_entry(
             await hekr_data_obj.cleanup_account(account_id)
 
     except HekrAPIException:
-        _LOGGER.exception(
-            "Exception occurred while unloading entry %s" % config_entry.entry_id
-        )
+        _LOGGER.exception("Exception occurred while unloading entry %s" % config_entry.entry_id)
 
     return True

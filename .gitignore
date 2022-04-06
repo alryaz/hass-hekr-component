@@ -137,3 +137,6 @@ dmypy.json
 
 # Dev version of Hekr API
 /custom_components/hekr/hekrapi
+
+# Local Home Assistant installation
+/hass

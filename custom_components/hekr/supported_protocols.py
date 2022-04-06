@@ -10,7 +10,7 @@ from homeassistant.components.sensor import (
     STATE_CLASS_MEASUREMENT,
     STATE_CLASS_TOTAL_INCREASING,
 )
-from homeassistant.components.switch import ATTR_CURRENT_POWER_W, DEVICE_CLASS_SWITCH
+from homeassistant.components.switch import DEVICE_CLASS_SWITCH
 from homeassistant.const import (
     ATTR_DEVICE_CLASS,
     ATTR_ICON,
@@ -65,9 +65,7 @@ def power_meter_attribute_filter(attributes: dict) -> dict:
         )
 
     if "total_active_power" in attributes:
-        attributes["total_active_power"] = round(
-            attributes["total_active_power"] * 1000, 1
-        )
+        attributes["total_active_power"] = round(attributes["total_active_power"] * 1000, 1)
 
     # filter attributes by phase count
     if "phase_count" in attributes:
@@ -81,9 +79,7 @@ def power_meter_attribute_filter(attributes: dict) -> dict:
     # get mean current
     if "current_1" in attributes:
         currents = [
-            value
-            for attribute, value in attributes.items()
-            if attribute[:-1] == "current_"
+            value for attribute, value in attributes.items() if attribute[:-1] == "current_"
         ]
         total_current = sum(currents)
         attributes["mean_current"] = round(float(total_current) / len(currents), 3)
@@ -117,9 +113,7 @@ def power_meter_attribute_filter(attributes: dict) -> dict:
 
     # process switch state
     if "switch_state" in attributes:
-        attributes["switch_state"] = (
-            STATE_ON if attributes["switch_state"] else STATE_OFF
-        )
+        attributes["switch_state"] = STATE_ON if attributes["switch_state"] else STATE_OFF
 
     return attributes
 
@@ -277,7 +271,6 @@ POWER_METER = {
             },
             ATTR_STATE: "switch_state",
             ATTR_DEVICE_CLASS: DEVICE_CLASS_SWITCH,
-            ATTR_CURRENT_POWER_W: "current_energy_consumption",
             PROTOCOL_CMD_UPDATE: "queryDev",
             PROTOCOL_CMD_RECEIVE: "reportDev",
             PROTOCOL_CMD_TURN_ON: ("setSw", {"switch_state": True}),

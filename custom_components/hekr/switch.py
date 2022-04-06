@@ -1,23 +1,19 @@
 """Support for Hekr switches."""
 
 __all__ = [
-    'PLATFORM_SCHEMA',
-    'async_setup_platform',
-    'async_setup_entry',
-    'HekrSwitch',
+    "PLATFORM_SCHEMA",
+    "async_setup_platform",
+    "async_setup_entry",
+    "HekrSwitch",
 ]
 
 import logging
 from typing import Any, Optional
 
-from homeassistant.components.switch import PLATFORM_SCHEMA, DOMAIN as PLATFORM_DOMAIN, \
-    ATTR_CURRENT_POWER_W, ATTR_TODAY_ENERGY_KWH
+from homeassistant.components.switch import PLATFORM_SCHEMA, DOMAIN as PLATFORM_DOMAIN
 from homeassistant.const import STATE_ON, STATE_OFF
 
-try:
-    from homeassistant.components.switch import SwitchEntity
-except ImportError:
-    from homeassistant.component.switch import SwitchDevice as SwitchEntity
+from homeassistant.components.switch import SwitchEntity
 
 from .base_platform import HekrEntity, create_platform_basics
 from .const import PROTOCOL_CMD_TURN_ON, PROTOCOL_CMD_TURN_OFF
@@ -66,7 +62,7 @@ class HekrSwitch(HekrEntity, SwitchEntity):
 
     @property
     def unique_id(self) -> Optional[str]:
-        return '_'.join((self._device_id, PLATFORM_DOMAIN, self._ent_type))
+        return "_".join((self._device_id, PLATFORM_DOMAIN, self._ent_type))
 
 
 PLATFORM_SCHEMA, async_setup_platform, async_setup_entry = create_platform_basics(

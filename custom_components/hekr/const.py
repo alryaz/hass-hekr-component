@@ -4,8 +4,15 @@ from datetime import timedelta
 
 from homeassistant.components.sensor import DOMAIN as DOMAIN_SENSOR
 from homeassistant.components.switch import DOMAIN as DOMAIN_SWITCH
-from homeassistant.const import CONF_DEVICE_ID, ENERGY_KILO_WATT_HOUR, POWER_WATT, ATTR_ICON, ATTR_NAME, CONF_SENSORS, \
-    CONF_SWITCHES
+from homeassistant.const import (
+    CONF_DEVICE_ID,
+    ENERGY_KILO_WATT_HOUR,
+    POWER_WATT,
+    ATTR_ICON,
+    ATTR_NAME,
+    CONF_SENSORS,
+    CONF_SWITCHES,
+)
 
 DOMAIN = "hekr"
 
@@ -27,7 +34,7 @@ UNIT_ENERGY_CONSUMED = ENERGY_KILO_WATT_HOUR
 UNIT_POWER_FACTOR = None
 UNIT_POWER_ACTIVE = POWER_WATT
 UNIT_POWER_REACTIVE = "kVa"
-UNIT_CURRENT_CONSUMPTION = 'W'
+UNIT_CURRENT_CONSUMPTION = "W"
 
 CONF_DEVICE_ID = CONF_DEVICE_ID
 CONF_CONTROL_KEY = "control_key"

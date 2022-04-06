@@ -128,9 +128,7 @@ class HekrEntity(Entity):
                     invalid_types = enabled_types - init_enable.keys()
 
                     if invalid_types:
-                        raise ValueError(
-                            "Invalid sensor types: %s" % ", ".join(invalid_types)
-                        )
+                        raise ValueError("Invalid sensor types: %s" % ", ".join(invalid_types))
 
                 init_enable.update(dict.fromkeys(enabled_types, True))
 
@@ -201,11 +199,7 @@ class HekrEntity(Entity):
                     )
                     attributes[attribute] = STATE_UNKNOWN
 
-        if (
-            attributes != self._attributes
-            or state != self._state
-            or not self._available
-        ):
+        if attributes != self._attributes or state != self._state or not self._available:
             self._available = True
             self._state = state
             self._attributes = attributes
@@ -226,8 +220,7 @@ class HekrEntity(Entity):
             ).result()
         else:
             _LOGGER.error(
-                "%s attempted to execute unknown protocol command: %s"
-                % (self, protocol_command)
+                "%s attempted to execute unknown protocol command: %s" % (self, protocol_command)
             )
             return False
 
@@ -351,32 +344,24 @@ async def _setup_entity(
         )
 
         if entities is None:
-            logger.warning(
-                'No entities added for device with ID "%s"' % device.device_id
-            )
+            logger.warning('No entities added for device with ID "%s"' % device.device_id)
             return False
 
-        _LOGGER.debug(
-            "Prepared entities: %s" % ", ".join([entity.name for entity in entities])
-        )
+        _LOGGER.debug("Prepared entities: %s" % ", ".join([entity.name for entity in entities]))
 
         async_add_entities(entities)
         logger.debug(
-            'Adding %s(-s) complete on device with ID "%s"'
-            % (entity_domain, device.device_id)
+            'Adding %s(-s) complete on device with ID "%s"' % (entity_domain, device.device_id)
         )
 
         return True
 
     except HekrAPIException as e:
         logger.exception(
-            "%s configuration failed due to API error: %s"
-            % (entity_domain.capitalize(), e)
+            "%s configuration failed due to API error: %s" % (entity_domain.capitalize(), e)
         )
     except ValueError as e:
-        logger.exception(
-            "%s configuration failed: %s" % (entity_domain.capitalize(), e)
-        )
+        logger.exception("%s configuration failed: %s" % (entity_domain.capitalize(), e))
 
     return False
 
@@ -400,8 +385,7 @@ def create_platform_basics(
 
     if config_key is None:
         raise ValueError(
-            'Entity domain "%s" is not supported for [%s] domain.'
-            % (entity_domain, DOMAIN)
+            'Entity domain "%s" is not supported for [%s] domain.' % (entity_domain, DOMAIN)
         )
 
     async def _async_setup_entry(
@@ -417,9 +401,7 @@ def create_platform_basics(
         if config_type == CONF_DEVICE:
             device_id = item_config[CONF_DEVICE_ID]
             device_cfg = hekr_data.devices_config_entries[device_id]
-            _LOGGER.debug(
-                "Adding local device %s with config: %s" % (device_id, device_cfg)
-            )
+            _LOGGER.debug("Adding local device %s with config: %s" % (device_id, device_cfg))
             return await _setup_entity(
                 logger=logger,
                 hass=hass,
@@ -458,9 +440,9 @@ def create_platform_basics(
 
         return False
 
-    async def _async_setup_platform(
-        hass: HomeAssistantType, config: ConfigType, *_, **__
-    ):
+    async def _async_setup_platform(hass: HomeAssistantType, config: ConfigType, *_, **__):
+        # @TODO: this is a deprecated block of code
+
         _LOGGER.error(
             "Platform setup is deprecated! Please, convert your configuration to use component instead of "
             "platform. A persistent notification will be created with config for your particular device."
