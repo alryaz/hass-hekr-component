@@ -22,11 +22,6 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class HekrSwitch(HekrEntity, SwitchEntity):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._current_power_w = None
-        self._today_energy_kwh = None
-
     @property
     def is_on(self) -> bool:
         return self.state == STATE_ON
@@ -40,25 +35,6 @@ class HekrSwitch(HekrEntity, SwitchEntity):
         self._state = STATE_OFF
         self.execute_protocol_command(PROTOCOL_CMD_TURN_OFF)
         self.schedule_update_ha_state()
-
-    async def handle_data_update(self, data):
-        power_attr = self._config.get(ATTR_CURRENT_POWER_W)
-        if power_attr is not None:
-            self._current_power_w = data.get(power_attr)
-
-        today_energy_attr = self._config.get(ATTR_TODAY_ENERGY_KWH)
-        if today_energy_attr is not None:
-            self._today_energy_kwh = data.get(today_energy_attr)
-
-        await super().handle_data_update(data)
-
-    @property
-    def current_power_w(self):
-        return self._current_power_w
-
-    @property
-    def today_energy_kwh(self):
-        return self._today_energy_kwh
 
     @property
     def unique_id(self) -> Optional[str]:
