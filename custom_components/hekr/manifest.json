@@ -4,7 +4,7 @@
     "documentation": "https://github.com/alryaz/hass-hekr-component",
     "dependencies": [],
     "issue_tracker": "https://github.com/alryaz/hass-hekr-component/issues",
-    "version": "v0.2.12",
+    "version": "v0.2.13",
     "codeowners": [
         "@alryaz"
     ],
