@@ -5,10 +5,16 @@ __all__ = [
     "POWER_METER",
 ]
 
+from hekrapi.protocols.power_meter import (
+    CurrentWarning,
+    PROTOCOL as PROTOCOL_POWER_METER,
+    PowerSupplyWarning,
+    VoltageWarning,
+)
+from hekrapi.protocols.power_socket import PROTOCOL as PROTOCOL_POWER_SOCKET
 from homeassistant.components.sensor import (
     ATTR_STATE_CLASS,
-    STATE_CLASS_MEASUREMENT,
-    STATE_CLASS_TOTAL_INCREASING,
+    SensorStateClass,
 )
 from homeassistant.components.switch import DEVICE_CLASS_SWITCH
 from homeassistant.const import (
@@ -33,13 +39,6 @@ from homeassistant.const import (
     STATE_PROBLEM,
 )
 
-from hekrapi.protocols.power_meter import (
-    CurrentWarning,
-    PROTOCOL as PROTOCOL_POWER_METER,
-    PowerSupplyWarning,
-    VoltageWarning,
-)
-from hekrapi.protocols.power_socket import PROTOCOL as PROTOCOL_POWER_SOCKET
 from .const import (
     ATTR_MONITORED,
     PROTOCOL_CMD_RECEIVE,
@@ -170,7 +169,7 @@ POWER_METER = {
             ATTR_STATE: "current_energy_consumption",
             ATTR_UNIT_OF_MEASUREMENT: POWER_WATT,
             ATTR_DEVICE_CLASS: DEVICE_CLASS_POWER,
-            ATTR_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+            ATTR_STATE_CLASS: SensorStateClass.MEASUREMENT,
             PROTOCOL_CMD_UPDATE: "queryDev",
             PROTOCOL_CMD_RECEIVE: "reportDev",
             PROTOCOL_DEFAULT: True,
@@ -181,7 +180,7 @@ POWER_METER = {
             ATTR_STATE: "total_energy_consumed",
             ATTR_UNIT_OF_MEASUREMENT: ENERGY_KILO_WATT_HOUR,
             ATTR_DEVICE_CLASS: DEVICE_CLASS_ENERGY,
-            ATTR_STATE_CLASS: STATE_CLASS_TOTAL_INCREASING,
+            ATTR_STATE_CLASS: SensorStateClass.TOTAL_INCREASING,
             PROTOCOL_CMD_UPDATE: "queryDev",
             PROTOCOL_CMD_RECEIVE: "reportDev",
             PROTOCOL_DEFAULT: True,
@@ -193,7 +192,7 @@ POWER_METER = {
             ATTR_STATE: "mean_voltage",
             ATTR_UNIT_OF_MEASUREMENT: ELECTRIC_POTENTIAL_VOLT,
             ATTR_DEVICE_CLASS: DEVICE_CLASS_VOLTAGE,
-            ATTR_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+            ATTR_STATE_CLASS: SensorStateClass.MEASUREMENT,
             ATTR_MONITORED: [
                 "voltage_1",
                 "voltage_2",
@@ -210,7 +209,7 @@ POWER_METER = {
             ATTR_STATE: "total_current",
             ATTR_UNIT_OF_MEASUREMENT: ELECTRIC_CURRENT_AMPERE,
             ATTR_DEVICE_CLASS: DEVICE_CLASS_CURRENT,
-            ATTR_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+            ATTR_STATE_CLASS: SensorStateClass.MEASUREMENT,
             ATTR_MONITORED: [
                 "mean_current",
                 "current_1",
@@ -228,7 +227,7 @@ POWER_METER = {
             ATTR_STATE: "total_power_factor",
             ATTR_UNIT_OF_MEASUREMENT: PERCENTAGE,
             ATTR_DEVICE_CLASS: DEVICE_CLASS_POWER_FACTOR,
-            ATTR_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+            ATTR_STATE_CLASS: SensorStateClass.MEASUREMENT,
             ATTR_MONITORED: ["power_factor_1", "power_factor_2", "power_factor_3"],
             PROTOCOL_CMD_UPDATE: "queryData",
             PROTOCOL_CMD_RECEIVE: "reportData",
@@ -240,7 +239,7 @@ POWER_METER = {
             ATTR_STATE: "total_active_power",
             ATTR_UNIT_OF_MEASUREMENT: POWER_WATT,
             ATTR_DEVICE_CLASS: DEVICE_CLASS_POWER,
-            ATTR_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+            ATTR_STATE_CLASS: SensorStateClass.MEASUREMENT,
             ATTR_MONITORED: ["active_power_1", "active_power_2", "active_power_3"],
             PROTOCOL_CMD_UPDATE: "queryData",
             PROTOCOL_CMD_RECEIVE: "reportData",
@@ -251,7 +250,7 @@ POWER_METER = {
             ATTR_ICON: "mdi:flash-outline",
             ATTR_STATE: "total_reactive_power",
             ATTR_UNIT_OF_MEASUREMENT: "kVar",
-            ATTR_STATE_CLASS: STATE_CLASS_MEASUREMENT,
+            ATTR_STATE_CLASS: SensorStateClass.MEASUREMENT,
             ATTR_MONITORED: [
                 "reactive_power_1",
                 "reactive_power_2",

@@ -13,7 +13,6 @@ from typing import Optional, TYPE_CHECKING, Dict, Any, Union, List, Type
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components.binary_sensor.device_condition import DEVICE_CLASS_NONE
-from homeassistant.components.sensor import ATTR_STATE_CLASS
 from homeassistant.const import (
     STATE_UNKNOWN,
     STATE_OK,
@@ -264,11 +263,6 @@ class HekrEntity(Entity):
         if attributes:
             base_attributes.update(attributes)
 
-        if ATTR_STATE_CLASS not in base_attributes:
-            state_class = self.state_class
-            if state_class is not None:
-                base_attributes[ATTR_STATE_CLASS] = state_class
-
         return base_attributes
 
     @property
@@ -289,10 +283,6 @@ class HekrEntity(Entity):
     @property
     def device_class(self) -> Optional[str]:
         return self._config.get(ATTR_DEVICE_CLASS, DEVICE_CLASS_NONE)
-
-    @property
-    def state_class(self) -> Optional[str]:
-        return self._config.get(ATTR_STATE_CLASS)
 
     @property
     def device_info(self) -> Optional[Dict[str, Any]]:
