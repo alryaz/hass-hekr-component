@@ -183,7 +183,7 @@ class HekrData:
                         'Performing update on %d entities for command "%s"'
                         % (len(tasks), command.name)
                     )
-                    await asyncio.wait(tasks)
+                    await asyncio.wait(asyncio.create_task(tasks))
                     _LOGGER.debug("Update complete!")
                 else:
                     _LOGGER.debug('No updates scheduled for command "%s"' % command.name)
