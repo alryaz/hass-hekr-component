@@ -173,7 +173,7 @@ class HekrData:
                 attributes = attribute_filter(data) if callable(attribute_filter) else data
 
                 tasks = [
-                    entity.handle_data_update(attributes)
+                    asyncio.create_task(entity.handle_data_update(attributes))
                     for entity in update_entities
                     if entity.command_receive == command.name
                 ]
@@ -432,7 +432,10 @@ class HekrData:
 
         self.create_account_updater(account_id)
 
-        tasks = [connector.open_connection() for connector in account.connectors.values()]
+        tasks = [
+            asyncio.create_task(connector.open_connection())
+            for connector in account.connectors.values()
+        ]
         await asyncio.wait(tasks)
         self.refresh_connections()
 
