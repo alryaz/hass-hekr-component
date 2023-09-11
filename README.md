@@ -2,12 +2,19 @@
 # HomeAssistant Hekr Integration 
 > HomeAssistant implementation of Hekr API communicator
 >
->[![hacs_badge](https://img.shields.io/badge/HACS-Default-green.svg)](https://github.com/custom-components/hacs)
->[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
->[![Maintenance](https://img.shields.io/badge/Maintained%3F-bugfixes%20only-yellow.svg)](https://github.com/alryaz/hass-hekr-component/graphs/commit-activity)
-> 
->[![Donate Yandex](https://img.shields.io/badge/Donate-Yandex-red.svg)](https://money.yandex.ru/to/410012369233217)
->[![Donate PayPal](https://img.shields.io/badge/Donate-Paypal-blueviolet.svg)](https://www.paypal.me/alryaz)
+> [![hacs_badge](https://img.shields.io/badge/HACS-Default-green.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+> [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+> [![Maintenance](https://img.shields.io/badge/Maintained%3F-bugfixes%20only-yellow.svg?style=for-the-badge)](https://github.com/alryaz/hass-hekr-component/graphs/commit-activity)
+
+> 💵 **Donation options to support development**  
+> [![Donate using YooMoney](https://img.shields.io/badge/YooMoney-8B3FFD.svg?style=for-the-badge)](https://yoomoney.ru/to/410012369233217)
+> [![Donate using Tinkoff](https://img.shields.io/badge/Tinkoff-F8D81C.svg?style=for-the-badge)](https://www.tinkoff.ru/cf/3g8f1RTkf5G)
+> [![Donate using Sberbank](https://img.shields.io/badge/Сбербанк-green.svg?style=for-the-badge)](https://www.sberbank.com/ru/person/dl/jc?linkname=3pDgknI7FY3z7tJnN)
+> [![Donate using DonationAlerts](https://img.shields.io/badge/DonationAlerts-fbaf2b.svg?style=for-the-badge)](https://www.donationalerts.com/r/alryaz)
+>
+> 💬 **Technical Support**  
+> [![Telegram Group](https://img.shields.io/endpoint?url=https%3A%2F%2Ftg.sumanjay.workers.dev%2Falryaz_ha_addons&style=for-the-badge)](https://telegram.dog/alryaz_ha_addons)  
+> **Warning:** The group is primarily oriented toward Russian users, however do not hesitate to join and ask questions in English, to which I usually reply in a timely manner.
 
 ## ❗❗❗ WARNING ❗❗❗
 **THIS PROJECT IS HIGHLY _WORK-IN-PROGRESS_!!!**
