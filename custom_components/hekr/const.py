@@ -6,8 +6,8 @@ from homeassistant.components.sensor import DOMAIN as DOMAIN_SENSOR
 from homeassistant.components.switch import DOMAIN as DOMAIN_SWITCH
 from homeassistant.const import (
     CONF_DEVICE_ID,
-    ENERGY_KILO_WATT_HOUR,
-    POWER_WATT,
+    UnitOfEnergy,
+    UnitOfPower,
     ATTR_ICON,
     ATTR_NAME,
     CONF_SENSORS,
@@ -30,9 +30,9 @@ DEFAULT_TIMEOUT = 10.0
 
 UNIT_VOLTAGE = "V"
 UNIT_CURRENT = "A"
-UNIT_ENERGY_CONSUMED = ENERGY_KILO_WATT_HOUR
+UNIT_ENERGY_CONSUMED = UnitOfEnergy.KILO_WATT_HOUR
 UNIT_POWER_FACTOR = None
-UNIT_POWER_ACTIVE = POWER_WATT
+UNIT_POWER_ACTIVE = UnitOfPower.WATT
 UNIT_POWER_REACTIVE = "kVa"
 UNIT_CURRENT_CONSUMPTION = "W"
 
