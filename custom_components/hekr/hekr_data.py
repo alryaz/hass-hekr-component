@@ -36,7 +36,7 @@ from homeassistant.const import (
     CONF_TIMEOUT,
 )
 from homeassistant.helpers.event import async_track_time_interval, async_track_point_in_time
-from homeassistant.helpers.typing import HomeAssistantType, ConfigType
+from homeassistant.helpers.typing import homeassistant.core.HomeAssistant, ConfigType
 from homeassistant.util.dt import now
 
 from custom_components.hekr.supported_protocols import SUPPORTED_PROTOCOLS
@@ -81,7 +81,7 @@ class FrameNumber(object):
 
 
 class HekrData:
-    def __init__(self, hass: HomeAssistantType):
+    def __init__(self, hass: homeassistant.core.HomeAssistant):
         if isinstance(hass.data.get(DOMAIN), HekrData):
             raise Exception("One instance of HekrData is already installed")
 
