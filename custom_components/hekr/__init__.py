@@ -40,7 +40,7 @@ _LOGGER = logging.getLogger(__name__)
 
 @callback
 def _find_existing_entry(
-    hass: HomeAssistantType, setup_type: str, item_id: str
+    hass: homeassistant.core.HomeAssistant, setup_type: str, item_id: str
 ) -> Optional[config_entries.ConfigEntry]:
     existing_entries = hass.config_entries.async_entries(DOMAIN)
     item_id_key = CONF_DEVICE_ID if setup_type == CONF_DEVICE else CONF_USERNAME
@@ -52,7 +52,7 @@ def _find_existing_entry(
             return config_entry
 
 
-async def async_setup(hass: HomeAssistantType, yaml_config):
+async def async_setup(hass: homeassistant.core.HomeAssistant, yaml_config):
     """Set up cloud authenticators from config."""
     domain_config = yaml_config.get(DOMAIN)
     if not domain_config:
@@ -146,7 +146,7 @@ async def async_setup(hass: HomeAssistantType, yaml_config):
     return True
 
 
-async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry):
+async def async_setup_entry(hass: homeassistant.core.HomeAssistant, config_entry: config_entries.ConfigEntry):
     conf = config_entry.data
 
     hekr_data_obj: "HekrData" = hass.data.get(DOMAIN)
@@ -276,7 +276,7 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entrie
     return True
 
 
-async def async_unload_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry):
+async def async_unload_entry(hass: homeassistant.core.HomeAssistant, config_entry: config_entries.ConfigEntry):
     _LOGGER.debug('Unloading Hekr config entry with ID "%s"' % config_entry.entry_id)
 
     hekr_data_obj: "HekrData" = hass.data[DOMAIN]
