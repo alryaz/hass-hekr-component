@@ -36,7 +36,10 @@ from homeassistant.const import (
     CONF_TIMEOUT,
 )
 from homeassistant.helpers.event import async_track_time_interval, async_track_point_in_time
-from homeassistant.helpers.typing import homeassistant.core.HomeAssistant, ConfigType
+
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.typing import ConfigType
+
 from homeassistant.util.dt import now
 
 from custom_components.hekr.supported_protocols import SUPPORTED_PROTOCOLS
