@@ -29,7 +29,7 @@ from homeassistant.const import (
     CONF_PLATFORM,
 )
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.typing import HomeAssistantType, ConfigType
+from homeassistant.helpers.typing import homeassistant.core.HomeAssistant, ConfigType
 
 from . import _LOGGER
 from .const import (
@@ -295,7 +295,7 @@ class HekrEntity(Entity):
 
 async def _setup_entity(
     logger: "logging.Logger",
-    hass: HomeAssistantType,
+    hass: homeassistant.core.HomeAssistant,
     async_add_entities,
     config: ConfigType,
     protocol_key: str,
@@ -379,7 +379,7 @@ def create_platform_basics(
         )
 
     async def _async_setup_entry(
-        hass: HomeAssistantType,
+        hass: homeassistant.core.HomeAssistant,
         config_entry: config_entries.ConfigEntry,
         async_add_devices,
     ):
@@ -430,7 +430,7 @@ def create_platform_basics(
 
         return False
 
-    async def _async_setup_platform(hass: HomeAssistantType, config: ConfigType, *_, **__):
+    async def _async_setup_platform(hass: homeassistant.core.HomeAssistant, config: ConfigType, *_, **__):
         # @TODO: this is a deprecated block of code
 
         _LOGGER.error(
