@@ -1,10 +1,10 @@
 {
     "domain": "hekr",
     "name": "Hekr",
-    "documentation": "https://github.com/alryaz/hass-hekr-component",
+    "documentation": "https://github.com/Telectroboy/hass-hekr-component",
     "dependencies": [],
-    "issue_tracker": "https://github.com/alryaz/hass-hekr-component/issues",
-    "version": "v0.2.16",
+    "issue_tracker": "https://github.com/Telectroboy/hass-hekr-component/issues",
+    "version": "v0.2.18",
     "codeowners": [
         "@alryaz"
     ],
