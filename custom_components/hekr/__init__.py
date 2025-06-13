@@ -40,7 +40,7 @@ _LOGGER = logging.getLogger(__name__)
 
 @callback
 def _find_existing_entry(
-    hass: HomeAssistantType, setup_type: str, item_id: str
+    hass: HomeAssistant, setup_type: str, item_id: str
 ) -> Optional[config_entries.ConfigEntry]:
     existing_entries = hass.config_entries.async_entries(DOMAIN)
     item_id_key = CONF_DEVICE_ID if setup_type == CONF_DEVICE else CONF_USERNAME
