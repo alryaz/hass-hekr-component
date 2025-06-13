@@ -1,3 +1,4 @@
+#Modified on 13 june 2025 by Telectroboy => compatibility with HA 2025.6
 
 # HomeAssistant Hekr Integration 
 > HomeAssistant implementation of Hekr API communicator
