@@ -276,7 +276,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: config_entries.Co
     return True
 
 
-async def async_unload_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry):
+async def async_unload_entry(hass: HomeAssistant, config_entry: config_entries.ConfigEntry):
     _LOGGER.debug('Unloading Hekr config entry with ID "%s"' % config_entry.entry_id)
 
     hekr_data_obj: "HekrData" = hass.data[DOMAIN]
