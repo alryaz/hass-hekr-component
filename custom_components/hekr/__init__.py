@@ -17,7 +17,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_USERNAME, CONF_DEVICE_ID
 from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.typing import HomeAssistantType
+from homeassistant.core import HomeAssistant
 
 from .const import (
     DOMAIN,
@@ -52,7 +52,7 @@ def _find_existing_entry(
             return config_entry
 
 
-async def async_setup(hass: HomeAssistantType, yaml_config):
+async def async_setup(hass: HomeAssistant, yaml_config):
     """Set up cloud authenticators from config."""
     domain_config = yaml_config.get(DOMAIN)
     if not domain_config:
@@ -146,7 +146,7 @@ async def async_setup(hass: HomeAssistantType, yaml_config):
     return True
 
 
-async def async_setup_entry(hass: HomeAssistantType, config_entry: config_entries.ConfigEntry):
+async def async_setup_entry(hass: HomeAssistant, config_entry: config_entries.ConfigEntry):
     conf = config_entry.data
 
     hekr_data_obj: "HekrData" = hass.data.get(DOMAIN)
