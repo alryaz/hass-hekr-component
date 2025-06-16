@@ -1,0 +1,15 @@
+name: Handle version bump
+
+on:
+  push:
+    paths:
+      - "custom_components/*/manifest.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  call-auto-release:
+    uses: alryaz/various-common-code/.github/workflows/auto-release-upload.yml@main
+    secrets: inherit
