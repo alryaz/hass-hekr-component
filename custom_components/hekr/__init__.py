@@ -22,6 +22,7 @@ from homeassistant.helpers.typing import ConfigType
 from hekrapi.exceptions import HekrAPIException, AuthenticationFailedException
 
 from .const import (
+    CONF_DOMAINS,
     DOMAIN,
     CONF_DEVICES,
     CONF_ACCOUNTS,
@@ -229,11 +230,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             # await hekr_data.create_device_registry_entry(device, config_entry.entry_id)
 
-            hekr_data_obj.setup_entities(entry)
-
-            _LOGGER.debug('Successfully set up device with ID "%s"', device_id)
-            return True
-
         elif CONF_ACCOUNT in conf:
             account_cfg = conf[CONF_ACCOUNT]
             account_id = account_cfg.get(CONF_USERNAME)
@@ -260,10 +256,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 await hekr_data_obj.cleanup_account(account_id)
                 return False
 
-            _LOGGER.debug('Successfully set up account with username "%s"', account_id)
-
-            hekr_data_obj.setup_entities(entry)
-
         else:
             _LOGGER.error(
                 "Unknown configuration format for entry ID %s, must remove"
@@ -284,6 +276,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         return False
 
+    await hass.config_entries.async_forward_entry_setups(entry, CONF_DOMAINS)
+
+    _LOGGER.debug('Successfully set up device with ID "%s"', device_id)
     return True
 
 

@@ -248,30 +248,6 @@ class HekrData:
         return device_entry
 
     # Entity management
-    def setup_entities(
-        self, config_entry: config_entries.ConfigEntry
-    ) -> list[asyncio.Task]:
-        _LOGGER.debug(
-            "Setting up components for config entry %s" % config_entry.entry_id
-        )
-        tasks = []
-
-        for conf_key, (entity_domain, protocol_key) in CONF_DOMAINS.items():
-            _LOGGER.debug(
-                "Forwarding entry ID %s set up for entity domain %s for"
-                % (config_entry.entry_id, entity_domain)
-            )
-
-            tasks.append(
-                self.hass.async_create_task(
-                    self.hass.config_entries.async_forward_entry_setups(
-                        config_entry, [entity_domain]
-                    )
-                )
-            )
-
-        return tasks
-
     def collect_devices_for_entry(
         self, config_entry: config_entries.ConfigEntry
     ) -> list[DeviceID]:
