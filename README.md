@@ -1,10 +1,10 @@
 
-# HomeAssistant Hekr Integration 
-> HomeAssistant implementation of Hekr API communicator
+# Home Assistant Hekr Integration 
+> Home Assistant implementation of Hekr API communicator
 >
 > [![hacs_badge](https://img.shields.io/badge/HACS-Default-green.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
 > [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-> [![Maintenance](https://img.shields.io/badge/Maintained%3F-bugfixes%20only-yellow.svg?style=for-the-badge)](https://github.com/alryaz/hass-hekr-component/graphs/commit-activity)
+> [![Maintenance](https://img.shields.io/badge/Maintained%3F-bugfixes%20only-yellow.svg?style=for-the-badge)](https://github.com/alryaz/hass-hekr-component-component/graphs/commit-activity)
 
 > 💵 **Donation options to support development**  
 > [![Donate using YooMoney](https://img.shields.io/badge/YooMoney-8B3FFD.svg?style=for-the-badge)](https://yoomoney.ru/to/410012369233217)
@@ -16,16 +16,16 @@
 > [![Telegram Group](https://img.shields.io/endpoint?url=https%3A%2F%2Ftg.sumanjay.workers.dev%2Falryaz_ha_addons&style=for-the-badge)](https://telegram.dog/alryaz_ha_addons)  
 > **Warning:** The group is primarily oriented toward Russian users, however do not hesitate to join and ask questions in English, to which I usually reply in a timely manner.
 
-## ❗❗❗ WARNING ❗❗❗
-**THIS PROJECT IS HIGHLY _WORK-IN-PROGRESS_!!!**
-Things are subject to change drastically until at least two to three different Hekr implementations are discovered and
-added to the integration as well as the parent python module. Please, read release notes carefully before installing
-or upgrading. __I am not responsible for damaging your devices in any way!__
+> [!WARNING]
+> **THIS PROJECT IS HIGHLY WORK-IN-PROGRESS**  
+> Things are subject to change drastically until at least two to three different Hekr implementations are discovered and
+> added to the integration as well as the parent python module. Please, read release notes carefully before installing
+> or upgrading. __I am not responsible for damaging your devices in any way!__
 
-## ❗❗❗ _Elro Connects_ owners ❗❗❗
-This module **does not** yet support _Elro Connects_, however work has been done to make a testing implementation.
-Testers with _Elro K1_ gateways are needed. Please, contact me via e-mail 
-<[alryaz@xavux.com](mailto:alryaz@xavux.com?subject=Elro%20Connects%20Integration)>.
+> [!NOTE]
+> This module **does not** yet support _Elro Connects_, however work has been done to make a testing implementation.
+> Testers with _Elro K1_ gateways are needed. Please, contact me via e-mail 
+> <[alryaz@xavux.com](mailto:alryaz@xavux.com?subject=Elro%20Connects%20Integration)>.
 
 
 ## Contribution
@@ -40,6 +40,47 @@ You can also help with translating this component. Fork this repository, make ch
 translation key, and submit a pull request. Alternatively you can send a translation file directly through one of the
 communication channels listed at the end of this page.
 
+## Installation
+
+### Home Assistant Community Store
+
+> 🎉  **Recommended installation method.**
+
+[![Open your Home Assistant and open the repository inside Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=alryaz&repository=hass-hekr-component&category=integration)
+
+<details>
+  <summary>Manually (if the button above doesn't work)</summary>
+  To install and set up the integration, follow these steps:
+  <ol>
+    <li>Install HACS (<a href="https://hacs.xyz/docs/installation/installation/" target="_blank">installation guide on the official website</a>).</li>
+    <li>Add the repository to the list of custom repositories:
+      <ol>
+        <li>Open the main page of <i>HACS</i>.</li>
+        <li>Go to the <i>Integrations</i> section.</li>
+        <li>Click on the three dots in the upper right corner (additional menu).</li>
+        <li>Select <i>Custom repositories</i>.</li>
+        <li>Paste into the input field: <code>https://github.com/alryaz/hass-hekr-component</code></li>
+        <li>In the dropdown, select <i>Integration</i>.</li>
+        <li>Click <i>Add</i>.</li>
+      </ol>
+    </li>
+    <li>Search for <b>Hekr</b> in the integrations search.</li>
+    <li>Install the latest version of the component by clicking the <code>Install</code> button.</li>
+    <li>Restart the <i>Home Assistant</i> server.</li>
+  </ol>
+</details>
+
+### Installation from Archive
+
+> ⚠️ **Warning!** This option is **<ins>not recommended</ins>** due to
+> the difficulty of keeping the installed integration up to date.
+
+1. Download the [archive with the latest version of the integration](https://github.com/alryaz/hass-hekr-component/releases/latest/download/hekr.zip)
+2. Create the folder `custom_components` inside your Home Assistant configuration folder (if it doesn't exist)
+3. Create the folder `hekr` inside the `custom_components` folder
+4. Extract the contents of the downloaded archive into the `hekr` folder
+5. Restart the _Home Assistant_ server
+
 ## Supported protocols
 
 - [Power meter protocol](#power_meter_protocol): `power_meter`
@@ -48,7 +89,7 @@ communication channels listed at the end of this page.
 ## Power meter protocol: `power_meter`
 <a name="power_meter_protocol">
 
-![Loaded badges for power meter protocol](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_meter/badges.png)
+![Loaded badges for power meter protocol](https://raw.githubusercontent.com/alryaz/hass-hekr-component-component/master/images/power_meter/badges.png)
 
 _(more screenshots available at: [images/power_meter](images/power_meter))_
 
@@ -129,9 +170,9 @@ hekr:
 ## Power socket protocol: `power_socket`
 <a name="power_socket_protocol">
 
-![Loaded switches for power socket protocol](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_socket/switches.png)
+![Loaded switches for power socket protocol](https://raw.githubusercontent.com/alryaz/hass-hekr-component-component/master/images/power_socket/switches.png)
 
-**[Device](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_socket/device.jpg) | [Board picture](https://raw.githubusercontent.com/alryaz/hass-hekr-component/master/images/power_socket/board.jpg)**
+**[Device](https://raw.githubusercontent.com/alryaz/hass-hekr-component-component/master/images/power_socket/device.jpg) | [Board picture](https://raw.githubusercontent.com/alryaz/hass-hekr-component-component/master/images/power_socket/board.jpg)**
 <!--_(more screenshots available at: [images/power_socket](images/power_socket))_-->
 
 ### Supported devices
