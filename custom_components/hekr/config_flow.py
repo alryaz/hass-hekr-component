@@ -1,9 +1,13 @@
 """Config flow for Hekr."""
 
 import logging
-from typing import Optional, Dict, Tuple, Any
+from typing import Any
 
-from homeassistant import config_entries
+from homeassistant.config_entries import (
+    CONN_CLASS_LOCAL_POLL,
+    ConfigFlow,
+    ConfigFlowResult,
+)
 from homeassistant.const import (
     CONF_HOST,
     CONF_PORT,
@@ -35,15 +39,14 @@ from .supported_protocols import SUPPORTED_PROTOCOLS
 
 _LOGGER = logging.getLogger(__name__)
 
-ConfigFlowCommandType = Dict[str, Any]
+ConfigFlowCommandType = dict[str, Any]
 
 
-@config_entries.HANDLERS.register(DOMAIN)
-class HekrFlowHandler(config_entries.ConfigFlow):
+class HekrFlowHandler(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Hekr config entries."""
 
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
+    CONNECTION_CLASS = CONN_CLASS_LOCAL_POLL
 
     prefix_dynamic_config = "additional_"
 
@@ -113,7 +116,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         raise AttributeError("Could not find attribute with name %s" % item)
 
     async def _additional_config_step(
-        self, config_key: str, user_input=None
+        self, config_key: str, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowCommandType:
         """
         Process additional config step.
@@ -151,7 +154,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
 
         return await self._get_next_additional_step()
 
-    async def _get_next_additional_step(self) -> Dict[str, Any]:
+    async def _get_next_additional_step(self) -> dict[str, Any]:
         """
         Retrieve next additional step for given configuration.
         :return: Config flow command
@@ -226,17 +229,19 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         return False
 
     @property
-    def _current_protocol(self) -> Tuple[Optional[str], Optional[Dict]]:
+    def _current_protocol(self) -> tuple[str | None, dict | None]:
         """
         Return current protocol ID and its internal component definition.
-        :return: Tuple[Protocol ID, Internal definition]
+        :return: tuple[Protocol ID, Internal definition]
         """
         if self._current_config is not None:
             protocol_id = self._current_config[CONF_PROTOCOL]
             return protocol_id, SUPPORTED_PROTOCOLS[protocol_id]
         return None, None
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """
         Step 1. Show scenario selection
         :param user_input: (optional) User input from Home Assistant form
@@ -250,7 +255,9 @@ class HekrFlowHandler(config_entries.ConfigFlow):
 
         return await self.async_step_device()
 
-    async def async_step_device(self, user_input=None) -> Dict[str, Any]:
+    async def async_step_device(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """
         Step 2. Device configuration scenario
         :param user_input: (optional) User input from Home Assistant form
@@ -314,7 +321,9 @@ class HekrFlowHandler(config_entries.ConfigFlow):
 
         return await self._get_next_additional_step()
 
-    async def async_step_account(self, user_input=None):
+    async def async_step_account(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """
         Step 2. Account setup scenario
         :param self:
@@ -445,7 +454,7 @@ class HekrFlowHandler(config_entries.ConfigFlow):
         return await self._create_entry(user_input, CONF_ACCOUNT)
 
     async def async_step_import(
-        self, user_input: Optional[ConfigType] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowCommandType:
         """
         Step IMPORT. Import configuration from YAML

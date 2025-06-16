@@ -3,7 +3,7 @@ import logging
 from datetime import timedelta
 from functools import partial
 
-from typing import TYPE_CHECKING, Dict, Union, List, Callable, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Union, Callable, Optional
 
 from hekrapi import (
     Device,
@@ -86,16 +86,16 @@ class HekrData:
 
         self.hass = hass
 
-        self.devices: Dict[DeviceID, Device] = dict()
-        self.devices_config_yaml: Dict[DeviceID, ConfigType] = dict()
-        self.devices_config_entries: Dict[DeviceID, ConfigType] = dict()
-        self.device_entities: Dict[DeviceID, List["HekrEntity"]] = dict()
-        self.device_updaters: Dict[DeviceID, Tuple[Set[str], Callable]] = dict()
+        self.devices: dict[DeviceID, Device] = {}
+        self.devices_config_yaml: dict[DeviceID, ConfigType] = {}
+        self.devices_config_entries: dict[DeviceID, ConfigType] = {}
+        self.device_entities: dict[DeviceID, list["HekrEntity"]] = {}
+        self.device_updaters: dict[DeviceID, tuple[set[str], Callable]] = {}
 
-        self.accounts: Dict[Username, Account] = dict()
-        self.accounts_config_yaml: Dict[Username, ConfigType] = dict()
-        self.accounts_config_entries: Dict[Username, ConfigType] = dict()
-        self.account_updaters: Dict[Username, Callable] = dict()
+        self.accounts: dict[Username, Account] = {}
+        self.accounts_config_yaml: dict[Username, ConfigType] = {}
+        self.accounts_config_entries: dict[Username, ConfigType] = {}
+        self.account_updaters: dict[Username, Callable] = {}
 
         self.use_model_from_protocol = DEFAULT_USE_MODEL_FROM_PROTOCOL
 
@@ -139,7 +139,7 @@ class HekrData:
         message_id: int,
         state: DeviceResponseState,
         action: str,
-        data: Tuple["Command", Dict, int],
+        data: tuple["Command", dict, int],
     ) -> None:
         """
         Callback for Hekr messages on receive. Schedules entities for update once after a message was received.
@@ -208,7 +208,7 @@ class HekrData:
         protocol_id = device_cfg.get(CONF_PROTOCOL)
         protocol = SUPPORTED_PROTOCOLS[protocol_id]
 
-        attrs = dict()
+        attrs = {}
         attrs["identifiers"] = {(DOMAIN, device.device_id)}
 
         if device.device_info is None:
@@ -250,7 +250,7 @@ class HekrData:
     # Entity management
     def setup_entities(
         self, config_entry: config_entries.ConfigEntry
-    ) -> List[asyncio.Task]:
+    ) -> list[asyncio.Task]:
         _LOGGER.debug(
             "Setting up components for config entry %s" % config_entry.entry_id
         )
@@ -274,7 +274,7 @@ class HekrData:
 
     def collect_devices_for_entry(
         self, config_entry: config_entries.ConfigEntry
-    ) -> List[DeviceID]:
+    ) -> list[DeviceID]:
         conf = config_entry.data
         devices_for_entry = []
 
@@ -292,7 +292,7 @@ class HekrData:
 
     def unload_entities(
         self, config_entry: config_entries.ConfigEntry
-    ) -> List[asyncio.Task]:
+    ) -> list[asyncio.Task]:
         _LOGGER.debug(
             "Unloading components for config entry %s" % config_entry.entry_id
         )
@@ -509,7 +509,7 @@ class HekrData:
 
         self.create_account_updater(account_id)
 
-    def get_account_devices(self, account_id: str) -> Dict[DeviceID, Device]:
+    def get_account_devices(self, account_id: str) -> dict[DeviceID, Device]:
         return {
             device_id: self.devices[device_id]
             for device_id, config in self.devices_config_entries.items()
@@ -549,7 +549,7 @@ class HekrData:
 
     # Updater and listener management
     def _create_updater(
-        self, device_id: DeviceID, commands: Set[str], interval: timedelta
+        self, device_id: DeviceID, commands: set[str], interval: timedelta
     ) -> Callable:
         """
         Create updater for device.
