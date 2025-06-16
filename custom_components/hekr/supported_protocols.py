@@ -61,7 +61,9 @@ def power_meter_attribute_filter(attributes: dict) -> dict:
         )
 
     if "total_active_power" in attributes:
-        attributes["total_active_power"] = round(attributes["total_active_power"] * 1000, 1)
+        attributes["total_active_power"] = round(
+            attributes["total_active_power"] * 1000, 1
+        )
 
     # filter attributes by phase count
     if "phase_count" in attributes:
@@ -75,7 +77,9 @@ def power_meter_attribute_filter(attributes: dict) -> dict:
     # get mean current
     if "current_1" in attributes:
         currents = [
-            value for attribute, value in attributes.items() if attribute[:-1] == "current_"
+            value
+            for attribute, value in attributes.items()
+            if attribute[:-1] == "current_"
         ]
         total_current = sum(currents)
         attributes["mean_current"] = round(float(total_current) / len(currents), 3)
@@ -109,7 +113,9 @@ def power_meter_attribute_filter(attributes: dict) -> dict:
 
     # process switch state
     if "switch_state" in attributes:
-        attributes["switch_state"] = STATE_ON if attributes["switch_state"] else STATE_OFF
+        attributes["switch_state"] = (
+            STATE_ON if attributes["switch_state"] else STATE_OFF
+        )
 
     return attributes
 

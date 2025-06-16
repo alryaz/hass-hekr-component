@@ -48,11 +48,14 @@ def test_for_list_correspondence(config_key: str, protocol_key: str):
         param_val = values.get(config_key)
         if param_val is None or isinstance(param_val, bool):
             return values
-        avail_val = set(SUPPORTED_PROTOCOLS[values.get(CONF_PROTOCOL)][protocol_key].keys())
+        avail_val = set(
+            SUPPORTED_PROTOCOLS[values.get(CONF_PROTOCOL)][protocol_key].keys()
+        )
         invalid_val = set(param_val) - avail_val
         if invalid_val:
             return vol.Invalid(
-                message=config_key.capitalize() + " types (%s) are invalid", path=[config_key]
+                message=config_key.capitalize() + " types (%s) are invalid",
+                path=[config_key],
             )
         return values
 
@@ -92,7 +95,9 @@ BASE_PLATFORM_SCHEMA = {
     vol.Optional(CONF_HOST): cv.string,
     vol.Optional(CONF_PORT): cv.positive_int,
     # Base timeout
-    vol.Optional(CONF_TIMEOUT, default=5.0): vol.All(vol.Coerce(float), vol.Range(min=0)),
+    vol.Optional(CONF_TIMEOUT, default=5.0): vol.All(
+        vol.Coerce(float), vol.Range(min=0)
+    ),
 }
 
 DEVICE_SCHEMA = vol.All(BASE_PLATFORM_SCHEMA, *BASE_VALIDATOR_DOMAINS)
@@ -106,7 +111,9 @@ ACCOUNT_SCHEMA = {
         cv.time_period, cv.positive_timedelta
     ),
     vol.Optional(CONF_TOKEN_UPDATE_INTERVAL): cv.time_period,
-    vol.Optional(CONF_TIMEOUT, default=5.0): vol.All(vol.Coerce(float), vol.Range(min=0)),
+    vol.Optional(CONF_TIMEOUT, default=5.0): vol.All(
+        vol.Coerce(float), vol.Range(min=0)
+    ),
 }
 
 CONFIG_SCHEMA = vol.Schema(

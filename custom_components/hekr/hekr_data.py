@@ -4,7 +4,17 @@ from datetime import timedelta
 from functools import partial
 
 try:
-    from typing import TYPE_CHECKING, Dict, Union, List, Callable, Optional, Set, Tuple, NoReturn
+    from typing import (
+        TYPE_CHECKING,
+        Dict,
+        Union,
+        List,
+        Callable,
+        Optional,
+        Set,
+        Tuple,
+        NoReturn,
+    )
 except ImportError:
     from typing import TYPE_CHECKING, Dict, Union, List, Callable, Optional, Set, Tuple
 
@@ -35,7 +45,10 @@ from homeassistant.const import (
     CONF_CUSTOMIZE,
     CONF_TIMEOUT,
 )
-from homeassistant.helpers.event import async_track_time_interval, async_track_point_in_time
+from homeassistant.helpers.event import (
+    async_track_time_interval,
+    async_track_point_in_time,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util.dt import now
@@ -104,7 +117,9 @@ class HekrData:
         self.hass.bus.async_listen_once(
             EVENT_HOMEASSISTANT_START, self.callback_homeassistant_start
         )
-        self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, self.callback_homeassistant_stop)
+        self.hass.bus.async_listen_once(
+            EVENT_HOMEASSISTANT_STOP, self.callback_homeassistant_stop
+        )
 
     # HomeAssistant event callbacks
     async def callback_homeassistant_start(self, event: "Event") -> NoReturn:
@@ -165,13 +180,19 @@ class HekrData:
             update_entities = self.device_entities.get(device.device_id)
 
             if not update_entities:
-                _LOGGER.info("Device %s does not have any associated entities" % device.device_id)
+                _LOGGER.info(
+                    "Device %s does not have any associated entities" % device.device_id
+                )
             else:
-                protocol_id = self.devices_config_entries[device.device_id][CONF_PROTOCOL]
+                protocol_id = self.devices_config_entries[device.device_id][
+                    CONF_PROTOCOL
+                ]
                 protocol = SUPPORTED_PROTOCOLS[protocol_id]
 
                 attribute_filter = protocol.get(PROTOCOL_FILTER)
-                attributes = attribute_filter(data) if callable(attribute_filter) else data
+                attributes = (
+                    attribute_filter(data) if callable(attribute_filter) else data
+                )
 
                 tasks = [
                     asyncio.create_task(entity.handle_data_update(attributes))
@@ -187,7 +208,9 @@ class HekrData:
                     await asyncio.wait(tasks)
                     _LOGGER.debug("Update complete!")
                 else:
-                    _LOGGER.debug('No updates scheduled for command "%s"' % command.name)
+                    _LOGGER.debug(
+                        'No updates scheduled for command "%s"' % command.name
+                    )
 
     # Device registry management
     def get_device_info_dict(self, device_id: DeviceID):
@@ -230,14 +253,22 @@ class HekrData:
     ) -> "DeviceEntry":
         """Create device registry entry for device."""
         attrs = self.get_device_info_dict(device_id)
-        dev_reg: "DeviceRegistry" = await self.hass.helpers.device_registry.async_get_registry()
-        device_entry = dev_reg.async_get_or_create(config_entry_id=config_entry_id, **attrs)
+        dev_reg: "DeviceRegistry" = (
+            await self.hass.helpers.device_registry.async_get_registry()
+        )
+        device_entry = dev_reg.async_get_or_create(
+            config_entry_id=config_entry_id, **attrs
+        )
 
         return device_entry
 
     # Entity management
-    def setup_entities(self, config_entry: config_entries.ConfigEntry) -> List[asyncio.Task]:
-        _LOGGER.debug("Setting up components for config entry %s" % config_entry.entry_id)
+    def setup_entities(
+        self, config_entry: config_entries.ConfigEntry
+    ) -> List[asyncio.Task]:
+        _LOGGER.debug(
+            "Setting up components for config entry %s" % config_entry.entry_id
+        )
         tasks = []
 
         for conf_key, (entity_domain, protocol_key) in CONF_DOMAINS.items():
@@ -248,10 +279,12 @@ class HekrData:
 
             tasks.append(
                 self.hass.async_create_task(
-                    self.hass.config_entries.async_forward_entry_setups(config_entry, [entity_domain])
+                    self.hass.config_entries.async_forward_entry_setups(
+                        config_entry, [entity_domain]
+                    )
                 )
             )
-            
+
         return tasks
 
     def collect_devices_for_entry(
@@ -272,8 +305,12 @@ class HekrData:
 
         return devices_for_entry
 
-    def unload_entities(self, config_entry: config_entries.ConfigEntry) -> List[asyncio.Task]:
-        _LOGGER.debug("Unloading components for config entry %s" % config_entry.entry_id)
+    def unload_entities(
+        self, config_entry: config_entries.ConfigEntry
+    ) -> List[asyncio.Task]:
+        _LOGGER.debug(
+            "Unloading components for config entry %s" % config_entry.entry_id
+        )
         tasks = []
         for conf_key, (entity_domain, protocol_key) in CONF_DOMAINS.items():
             _LOGGER.debug(
@@ -311,7 +348,8 @@ class HekrData:
         if connect_port is None:
             raise Exception(
                 'Protocol "%s" for device with ID "%s" does not provide default port. Please, '
-                "configure port manually." % (protocol_id, device_cfg.get(CONF_DEVICE_ID))
+                "configure port manually."
+                % (protocol_id, device_cfg.get(CONF_DEVICE_ID))
             )
 
         connector = LocalConnector(
@@ -331,7 +369,8 @@ class HekrData:
 
         if CONF_NAME not in device_cfg:
             device_cfg[CONF_NAME] = DEFAULT_NAME_DEVICE.format(
-                protocol_name=protocol.get(PROTOCOL_NAME, protocol_id), device_id=device_id
+                protocol_name=protocol.get(PROTOCOL_NAME, protocol_id),
+                device_id=device_id,
             )
 
         self.add_device(device, device_cfg)
@@ -381,12 +420,16 @@ class HekrData:
         devices_added = 0
         for device_id, device in account.devices.items():
             if device_id in self.devices:
-                _LOGGER.debug("Found existing device %s during account setup" % device_id)
+                _LOGGER.debug(
+                    "Found existing device %s during account setup" % device_id
+                )
                 continue
 
             new_device_cfg = customize_cfg.get(CONF_CUSTOMIZE, {})
             if new_device_cfg is False:
-                _LOGGER.debug("Skipped adding device %s due to customize setting" % device_id)
+                _LOGGER.debug(
+                    "Skipped adding device %s due to customize setting" % device_id
+                )
                 continue
 
             elif CONF_PROTOCOL in new_device_cfg:
@@ -457,7 +500,9 @@ class HekrData:
             point_in_time=run_updater_at,
         )
 
-        _LOGGER.debug("Next updater scheduled for account %s: %s" % (account_id, run_updater_at))
+        _LOGGER.debug(
+            "Next updater scheduled for account %s: %s" % (account_id, run_updater_at)
+        )
 
     def remove_account_updater(self, account_id):
         if account_id in self.account_updaters:
@@ -471,7 +516,9 @@ class HekrData:
         try:
             await account.refresh_authentication()
         except HekrAPIException:
-            _LOGGER.exception("Hekr API exception occurred during account authentication update:")
+            _LOGGER.exception(
+                "Hekr API exception occurred during account authentication update:"
+            )
 
         _LOGGER.debug("Updating authentication on account %s successful" % account_id)
 
@@ -499,7 +546,10 @@ class HekrData:
     async def cleanup_device(self, device_id: str, with_refresh: bool = True):
         device = self.devices.get(device_id)
         if device:
-            if device.connector.listener is not None and device.connector.listener.is_running:
+            if (
+                device.connector.listener is not None
+                and device.connector.listener.is_running
+            ):
                 device.connector.listener.stop()
             await device.connector.close_connection()
             del self.devices[device_id]
@@ -527,7 +577,9 @@ class HekrData:
         async def call_command(*_):
             device = self.devices.get(device_id)
             if device is None:
-                _LOGGER.debug('Device with ID "%s" is missing, cannot run updater' % device_id)
+                _LOGGER.debug(
+                    'Device with ID "%s" is missing, cannot run updater' % device_id
+                )
                 return
 
             _LOGGER.debug(
@@ -561,7 +613,9 @@ class HekrData:
             interval = timedelta(seconds=min_seconds)
 
         # noinspection PyTypeChecker
-        return async_track_time_interval(hass=self.hass, action=call_command, interval=interval)
+        return async_track_time_interval(
+            hass=self.hass, action=call_command, interval=interval
+        )
 
     def remove_device_updater(self, device_id: DeviceID):
         if device_id in self.device_updaters:
@@ -578,7 +632,9 @@ class HekrData:
             if device_id in self.device_updaters:
                 current_update_commands, canceler = self.device_updaters[device_id]
                 if not update_commands ^ current_update_commands:
-                    _LOGGER.debug("Updater for device %s is fine, not cancelling" % device_id)
+                    _LOGGER.debug(
+                        "Updater for device %s is fine, not cancelling" % device_id
+                    )
                     continue
                 canceler()
                 del self.device_updaters[device_id]
@@ -623,8 +679,12 @@ class HekrData:
         required_listeners = set()
         for device_id, device in self.devices.items():
             if device_id in required_device_ids:
-                _LOGGER.debug("Device ID %s is required, adding its listener" % device_id)
-                listener = device.connector.get_listener(listener_factory=self._create_listener)
+                _LOGGER.debug(
+                    "Device ID %s is required, adding its listener" % device_id
+                )
+                listener = device.connector.get_listener(
+                    listener_factory=self._create_listener
+                )
                 required_listeners.add(listener)
                 if listener.is_running:
                     _LOGGER.debug("Listener for device ID %s is active" % device_id)

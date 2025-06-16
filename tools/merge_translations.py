@@ -13,15 +13,67 @@ from copy import deepcopy
 from json import load, dump
 from os.path import isfile
 
-base_path = '../custom_components/hekr/translations'
-all_languages = {'af', 'ar', 'bg', 'bs', 'ca', 'cs', 'cy', 'da', 'de', 'el', 'en', 'eo', 'es', 'et', 'eu', 'fa', 'fi',
-                 'fr', 'fy', 'gl', 'gsw', 'he', 'hi', 'hr', 'hu', 'hy', 'id', 'is', 'it', 'ja', 'ko', 'lb', 'lt', 'lv',
-                 'nb', 'nl', 'nn', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sr', 'sv', 'ta', 'te', 'th', 'tr', 'uk', 'ur',
-                 'vi', 'zh'}
+base_path = "../custom_components/hekr/translations"
+all_languages = {
+    "af",
+    "ar",
+    "bg",
+    "bs",
+    "ca",
+    "cs",
+    "cy",
+    "da",
+    "de",
+    "el",
+    "en",
+    "eo",
+    "es",
+    "et",
+    "eu",
+    "fa",
+    "fi",
+    "fr",
+    "fy",
+    "gl",
+    "gsw",
+    "he",
+    "hi",
+    "hr",
+    "hu",
+    "hy",
+    "id",
+    "is",
+    "it",
+    "ja",
+    "ko",
+    "lb",
+    "lt",
+    "lv",
+    "nb",
+    "nl",
+    "nn",
+    "pl",
+    "pt",
+    "ro",
+    "ru",
+    "sk",
+    "sl",
+    "sr",
+    "sv",
+    "ta",
+    "te",
+    "th",
+    "tr",
+    "uk",
+    "ur",
+    "vi",
+    "zh",
+}
 
-base_language = 'en'
+base_language = "en"
 
-overwrite_key = '_remove_me_after_making_translations_or_everything_will_be_replaced'
+overwrite_key = "_remove_me_after_making_translations_or_everything_will_be_replaced"
+
 
 def update(d, u):
     for k, v in u.items():
@@ -41,15 +93,15 @@ def replace_values(d, c):
     return d
 
 
-with open(base_path + '/' + base_language + '.json', 'r', encoding='utf-8') as fp:
+with open(base_path + "/" + base_language + ".json", "r", encoding="utf-8") as fp:
     base_json = load(fp)
-    base = replace_values(base_json, lambda v: '%s' % v)
+    base = replace_values(base_json, lambda v: "%s" % v)
 
 for language in all_languages:
-    path = base_path + '/' + language + '.json'
+    path = base_path + "/" + language + ".json"
     result = deepcopy(base)
     if isfile(path):
-        with open(path, 'r', encoding='utf-8') as fp:
+        with open(path, "r", encoding="utf-8") as fp:
             head = load(fp)
             if head.get(overwrite_key):
                 result[overwrite_key] = True
@@ -58,5 +110,5 @@ for language in all_languages:
     else:
         result[overwrite_key] = True
 
-    with open(path, 'w', encoding='utf-8') as fp:
+    with open(path, "w", encoding="utf-8") as fp:
         dump(result, fp, ensure_ascii=False, indent=4, sort_keys=True)
