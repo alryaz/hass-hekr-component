@@ -1,16 +1,16 @@
 {
     "domain": "hekr",
     "name": "Hekr",
-    "documentation": "https://github.com/alryaz/hass-hekr-component",
-    "dependencies": [],
-    "issue_tracker": "https://github.com/alryaz/hass-hekr-component/issues",
-    "version": "v0.2.16",
     "codeowners": [
         "@alryaz"
     ],
     "config_flow": true,
+    "dependencies": [],
+    "documentation": "https://github.com/alryaz/hass-hekr-component",
     "iot_class": "cloud_polling",
+    "issue_tracker": "https://github.com/alryaz/hass-hekr-component/issues",
     "requirements": [
         "hekrapi==0.3.1"
-    ]
+    ],
+    "version": "v0.2.16"
 }
