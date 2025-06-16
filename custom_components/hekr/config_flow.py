@@ -39,8 +39,6 @@ from .supported_protocols import SUPPORTED_PROTOCOLS
 
 _LOGGER = logging.getLogger(__name__)
 
-ConfigFlowCommandType = dict[str, Any]
-
 
 class HekrFlowHandler(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Hekr config entries."""
@@ -117,7 +115,7 @@ class HekrFlowHandler(ConfigFlow, domain=DOMAIN):
 
     async def _additional_config_step(
         self, config_key: str, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowCommandType:
+    ) -> ConfigFlowResult:
         """
         Process additional config step.
         :param config_key: Configuration key (set from __getattr__)
@@ -455,7 +453,7 @@ class HekrFlowHandler(ConfigFlow, domain=DOMAIN):
 
     async def async_step_import(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowCommandType:
+    ) -> ConfigFlowResult:
         """
         Step IMPORT. Import configuration from YAML
         Save only setup type and identifier (`username` for accounts, `device_id` for devices).
