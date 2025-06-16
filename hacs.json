@@ -1,14 +1,11 @@
 {
     "name": "Hekr Component",
     "content_in_root": false,
-    "filename": false,
-    "render_readme": false,
+    "zip_release": false,
+    "render_readme": true,
     "domains": [
         "sensor",
         "switch"
     ],
-    "country": false,
-    "homeassistant": "2022.3.0",
-    "persistent_directory": false,
-    "iot_class": "Local Polling"
+    "homeassistant": "2025.4.0"
 }
