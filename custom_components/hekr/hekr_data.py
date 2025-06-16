@@ -3,22 +3,7 @@ import logging
 from datetime import timedelta
 from functools import partial
 
-try:
-    from typing import (
-        TYPE_CHECKING,
-        Dict,
-        Union,
-        List,
-        Callable,
-        Optional,
-        Set,
-        Tuple,
-        NoReturn,
-    )
-except ImportError:
-    from typing import TYPE_CHECKING, Dict, Union, List, Callable, Optional, Set, Tuple
-
-    NoReturn = None
+from typing import TYPE_CHECKING, Dict, Union, List, Callable, Optional, Set, Tuple
 
 from hekrapi import (
     Device,
@@ -122,7 +107,7 @@ class HekrData:
         )
 
     # HomeAssistant event callbacks
-    async def callback_homeassistant_start(self, event: "Event") -> NoReturn:
+    async def callback_homeassistant_start(self, event: "Event") -> None:
         """
         Stub for pre-load events.
         :param event: HomeAssistant start event
@@ -130,7 +115,7 @@ class HekrData:
         """
         pass
 
-    async def callback_homeassistant_stop(self, event: "Event") -> NoReturn:
+    async def callback_homeassistant_stop(self, event: "Event") -> None:
         """
         Shut down connections on HomeAssistant stop.
         :param event: HomeAssistant stop event
@@ -155,7 +140,7 @@ class HekrData:
         state: DeviceResponseState,
         action: str,
         data: Tuple["Command", Dict, int],
-    ) -> NoReturn:
+    ) -> None:
         """
         Callback for Hekr messages on receive. Schedules entities for update once after a message was received.
         :param device: Device message comes from
@@ -622,7 +607,7 @@ class HekrData:
             self.device_updaters[device_id][1]()
             del self.device_updaters[device_id]
 
-    def _refresh_updaters(self) -> NoReturn:
+    def _refresh_updaters(self) -> None:
         """
         Derive required updaters for devices and create new and/or cancel existing.
         :return:
