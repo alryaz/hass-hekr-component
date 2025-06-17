@@ -1,6 +1,7 @@
 """Config flow for Hekr."""
 
 import logging
+import voluptuous as vol
 from typing import Any
 
 from homeassistant.config_entries import (
@@ -19,7 +20,10 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
 )
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import ConfigType
+
+from custom_components.hekr.schemas import ACCOUNT_SCHEMA
 
 from .const import (
     DOMAIN,
@@ -39,6 +43,35 @@ from .supported_protocols import SUPPORTED_PROTOCOLS
 
 _LOGGER = logging.getLogger(__name__)
 
+USER_SCHEMA = vol.Schema({vol.Required(CONF_TYPE): vol.In([CONF_DEVICE, CONF_ACCOUNT])})
+
+DEVICE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_NAME): cv.string,
+        vol.Required(CONF_DEVICE_ID): cv.string,
+        vol.Required(CONF_CONTROL_KEY): cv.string,
+        vol.Required(CONF_HOST): cv.string,
+        vol.Required(CONF_PROTOCOL): vol.In(
+            {
+                p_id: p_def.get(PROTOCOL_NAME, p_id)
+                for p_id, p_def in SUPPORTED_PROTOCOLS.items()
+            }
+        ),
+        vol.Optional(CONF_PORT): cv.string,
+        vol.Optional(
+            CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL.seconds
+        ): cv.positive_int,
+    }
+)
+
+ACCOUNT_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_USERNAME): cv.string,
+        vol.Required(CONF_PASSWORD): cv.string,
+        vol.Optional(CONF_DUMP_DEVICE_CREDENTIALS, default=False): bool,
+    }
+)
+
 
 class HekrFlowHandler(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Hekr config entries."""
@@ -54,30 +87,6 @@ class HekrFlowHandler(ConfigFlow, domain=DOMAIN):
         self._current_config = None
         self._devices_info = None
 
-        import voluptuous as vol
-        from collections import OrderedDict
-
-        schema_user = OrderedDict()
-        schema_user[vol.Required(CONF_TYPE)] = vol.In([CONF_DEVICE, CONF_ACCOUNT])
-        self.schema_user = vol.Schema(schema_user)
-
-        schema_device = OrderedDict()
-        schema_device[vol.Optional(CONF_NAME)] = str
-        schema_device[vol.Required(CONF_DEVICE_ID)] = str
-        schema_device[vol.Required(CONF_CONTROL_KEY)] = str
-        schema_device[vol.Required(CONF_HOST)] = str
-        schema_device[vol.Required(CONF_PROTOCOL)] = vol.In(
-            {
-                p_id: p_def.get(PROTOCOL_NAME, p_id)
-                for p_id, p_def in SUPPORTED_PROTOCOLS.items()
-            }
-        )
-        schema_device[vol.Optional(CONF_PORT)] = str
-        schema_device[
-            vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL.seconds)
-        ] = int
-        self.schema_device = vol.Schema(schema_device)
-
         self.schema_additional = lambda protocol_id, protocol_key: vol.Schema(
             {
                 vol.Optional(
@@ -89,12 +98,6 @@ class HekrFlowHandler(ConfigFlow, domain=DOMAIN):
                 ].items()
             }
         )
-
-        schema_account = OrderedDict()
-        schema_account[vol.Required(CONF_USERNAME)] = str
-        schema_account[vol.Required(CONF_PASSWORD)] = str
-        schema_account[vol.Optional(CONF_DUMP_DEVICE_CREDENTIALS, default=False)] = bool
-        self.schema_account = vol.Schema(schema_account)
 
     def __getattr__(self, item: str) -> Any:
         """
@@ -329,9 +332,7 @@ class HekrFlowHandler(ConfigFlow, domain=DOMAIN):
         :return:
         """
         if user_input is None:
-            return self.async_show_form(
-                step_id="account", data_schema=self.schema_account
-            )
+            return self.async_show_form(step_id="account", data_schema=ACCOUNT_SCHEMA)
 
         if await self._check_entry_exists(user_input[CONF_USERNAME], CONF_ACCOUNT):
             _LOGGER.info(
@@ -354,7 +355,7 @@ class HekrFlowHandler(ConfigFlow, domain=DOMAIN):
         except AuthenticationFailedException:
             return self.async_show_form(
                 step_id="account",
-                data_schema=self.schema_account,
+                data_schema=ACCOUNT_SCHEMA,
                 errors={
                     "base": "account_invalid_credentials",
                 },

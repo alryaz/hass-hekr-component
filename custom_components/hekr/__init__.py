@@ -107,7 +107,6 @@ async def async_setup(hass: HomeAssistant, yaml_config: ConfigType) -> bool:
 
     accounts_config = domain_config.get(CONF_ACCOUNTS)
     if accounts_config:
-
         for account_cfg in accounts_config:
 
             account_id = account_cfg.get(CONF_USERNAME)
@@ -309,3 +308,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     return True
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    pass

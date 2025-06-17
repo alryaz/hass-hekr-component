@@ -8,10 +8,10 @@ __all__ = (
 import asyncio
 from collections import OrderedDict
 from datetime import timedelta
-from typing import Optional, TYPE_CHECKING, Dict, Any, Union, List, Type
+from typing import Optional, TYPE_CHECKING, Any, Union, Type
 
+from homeassistant.config_entries import ConfigEntry
 import voluptuous as vol
-from homeassistant import config_entries
 from homeassistant.components.binary_sensor.device_condition import DEVICE_CLASS_NONE
 from homeassistant.const import (
     STATE_UNKNOWN,
@@ -28,8 +28,9 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_PLATFORM,
 )
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.typing import HomeAssistantType, ConfigType
+from homeassistant.helpers.typing import ConfigType
 
 from . import _LOGGER
 from .const import (
@@ -52,12 +53,14 @@ if TYPE_CHECKING:
 
 
 class HekrEntity(Entity):
+    _attr_available = False
+
     def __init__(
         self,
         device_id: str,
         ent_type: str,
         name: str,
-        config: Dict,
+        config: dict,
         update_interval: timedelta,
         init_enable: bool,
     ):
@@ -68,13 +71,12 @@ class HekrEntity(Entity):
         )
         self._device_id = device_id
         self._ent_type = ent_type
-        self._name = name
+        self._attr_name = name
         self._config = config
         self._update_interval = update_interval
         self._init_enable = init_enable
 
         self._attributes = None
-        self._available = False
         self._state = STATE_UNKNOWN
 
     def __hash__(self):
@@ -102,8 +104,8 @@ class HekrEntity(Entity):
         cls: Type["HekrEntity"],
         device_id: str,
         name: str,
-        types: Optional[Union[bool, str, List[str]]],
-        configs: Dict[str, dict],
+        types: Optional[Union[bool, str, list[str]]],
+        configs: dict[str, dict],
         update_interval: timedelta,
     ):
         if types is True:
@@ -156,7 +158,7 @@ class HekrEntity(Entity):
         Updates are handled by generated updaters via HekrData class. The :func:`HekrEntity.handle_data_update` method
         handles incoming data response
         :param data: Incoming data dictionary
-        :type data: Dict[str, Any]
+        :type data: dict[str, Any]
         """
         _LOGGER.debug(
             "Handling data update for %s entity [%s] with data: %s"
@@ -203,9 +205,9 @@ class HekrEntity(Entity):
         if (
             attributes != self._attributes
             or state != self._state
-            or not self._available
+            or not self._attr_available
         ):
-            self._available = True
+            self._attr_available = True
             self._state = state
             self._attributes = attributes
             await self.async_update_ha_state(force_refresh=True)
@@ -240,7 +242,7 @@ class HekrEntity(Entity):
 
     @property
     def available(self) -> bool:
-        return self._available
+        return self._attr_available
 
     @property
     def icon(self) -> Optional[str]:
@@ -248,11 +250,6 @@ class HekrEntity(Entity):
         if isinstance(icon, dict):
             return icon.get(self._state, icon.get(PROTOCOL_DEFAULT))
         return icon
-
-    @property
-    def name(self) -> str:
-        """Return the display name of this entity."""
-        return self._name
 
     @property
     def state(self) -> Optional[str]:
@@ -292,7 +289,7 @@ class HekrEntity(Entity):
         return self._config.get(ATTR_DEVICE_CLASS, DEVICE_CLASS_NONE)
 
     @property
-    def device_info(self) -> Optional[Dict[str, Any]]:
+    def device_info(self) -> Optional[dict[str, Any]]:
         return self._data.get_device_info_dict(self._device_id)
 
     @property
@@ -302,7 +299,7 @@ class HekrEntity(Entity):
 
 async def _setup_entity(
     logger: "logging.Logger",
-    hass: HomeAssistantType,
+    hass: HomeAssistant,
     async_add_entities,
     config: ConfigType,
     protocol_key: str,
@@ -395,8 +392,8 @@ def create_platform_basics(
         )
 
     async def _async_setup_entry(
-        hass: HomeAssistantType,
-        config_entry: config_entries.ConfigEntry,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
         async_add_devices,
     ):
         conf = config_entry.data
@@ -448,9 +445,7 @@ def create_platform_basics(
 
         return False
 
-    async def _async_setup_platform(
-        hass: HomeAssistantType, config: ConfigType, *_, **__
-    ):
+    async def _async_setup_platform(hass: HomeAssistant, config: ConfigType, *_, **__):
         # @TODO: this is a deprecated block of code
 
         _LOGGER.error(
