@@ -1,3 +1,10 @@
+# ⚠️ THIS PROJECT IS LOOKING FOR A MAINTAINER ⚠️
+
+I no longer posess means to test this component on newer Home Assistant versions as I have re-flashed the only Hekr device I had, and the other blew up spectacularly.
+
+Unless someone wants to lease a constant VPN with a connection to a device, I (@alryaz) will be unable to support this project further.
+
+Please, raise an issue to ask for maintainersihp transfer.
 
 # Home Assistant Hekr Integration 
 > Home Assistant implementation of Hekr API communicator
